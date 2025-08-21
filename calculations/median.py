@@ -56,10 +56,9 @@ def calculate(data, selected_columns, headers, additional_data={}):
             else:
                 result_html += f"""
                 <div style='margin-bottom: 15px; padding: 10px; background: #e8f5e8; border-left: 4px solid #4caf50;'>
-                    <strong>{col}:</strong><br>
+                    <strong>Columns {col}</strong><br>
                     <strong>Median:</strong> {stats['median']}<br>
-                    <strong>Valid Cases:</strong> {stats['count']}<br>
-                    <strong>Total Cases:</strong> {stats['total_cases']}
+                    <strong>Number of Observations:</strong> {stats['count']}<br>
                     {f"<br><strong>Missing:</strong> {stats['missing_cases']}" if stats['missing_cases'] > 0 else ""}
                 </div>
                 """
@@ -70,3 +69,6 @@ def calculate(data, selected_columns, headers, additional_data={}):
     except Exception as e:
         return f"<div style='color: red; font-family: Arial;'>Error calculating median: {str(e)}</div>"
     
+    
+    
+# <strong>Total Cases:</strong> {stats['total_cases']}

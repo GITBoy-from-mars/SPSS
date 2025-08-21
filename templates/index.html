@@ -11,7 +11,7 @@
       display: flex; align-items: center; min-height: 56px;
       border-bottom: 1px solid #eaeaea; z-index: 100; position: relative;
     }
-    .menu-logo { height: 38px; margin: 0 18px 0 12px; }
+    .menu-logo { height: 32px; margin: 0 18px 0 12px; width: auto; vertical-align: middle; margin-right: 20px; }
     .menu-title { font-weight: bold; font-size: 18px; margin-right: 40px; }
     #menus { display: flex; }
     .menu-group { position: relative; margin-right: 32px; }
@@ -24,9 +24,10 @@
     .submenu-group { position:relative; }
     .submenu-content { display:none; position: absolute; left:100%; top:0; min-width:170px; background:#fff; box-shadow:0 4px 20px #0002; border-radius:4px; padding:7px 0; z-index:1100;}
     .dropdown-content .submenu-group:hover .submenu-content { display: block;}
-    #hot { margin: 28px auto 0 auto; width: 95%; max-width: 1100px; z-index: 1 !important; }
-    #result { font-weight: bold; margin-top: 16px; margin-left: 6px; min-height: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px; }
-    #version { margin-left: auto; margin-right: 36px; font-size: 13px; color: #777; }
+    .main-flex-wrapper { display: flex; align-items: flex-start; gap: 12px;}
+    #hot { position: relative; margin: 28px auto 0 auto; width: auto !important; max-width: 1100px; z-index: 1 !important; }
+    #result {position: relative; z-index: 2; flex: 0 0 300px; max-width: 420px; min-width: 270px; overflow: auto; height: calc(100vh - 96px); font-weight: bold; margin-top: 16px; margin-left: 6px; min-height: 20px; padding: 20px; background: #f5f5f5; border-radius: 4px; }
+    #version { margin-left: auto; margin-right: 20px; font-size: 13px; color: #777; }
     #modal { display: none; position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;}
     #modal iframe { background:#fff; border-radius:8px; border:none; width:500px; height:400px; }
     #fileInput { display: none; }
@@ -80,8 +81,15 @@
   
   <input type="file" id="fileInput" accept=".xlsx,.xls">
 
-  <div style="display: flex; align-items: flex-start;">
+  <!-- <div style="display: flex; align-items: flex-start;">
   <div id="result" style="min-width:270px; max-width:420px; margin-right:20px;"></div>
+  <div style="flex:1;">
+    <div id="hot"></div>
+  </div>
+</div> -->
+
+<div class="main-flex-wrapper">
+  <div id="result"></div>
   <div style="flex:1;">
     <div id="hot"></div>
   </div>
@@ -137,7 +145,7 @@
           //   {text: "T-Test", action: ()=>showCalculationPopup('ttest')},
           //   {text: "One-Way ANOVA", action: ()=>showCalculationPopup('anova')}
           // ]},
-          {text: "Correlate", submenu: [
+          {text: "Correlation", submenu: [
             {text: "Bivariate/Partial/Distances", action: ()=>showCalculationPopup('correlation')},
             // {text: "Partial", action: ()=>showCalculationPopup('partial_correlation')},
             // {text: "Distance", action: ()=>showCalculationPopup('distances_correlation')}
@@ -165,12 +173,12 @@
 
     // Handsontable initializatio n
     let hot;
-    function createGridEmpty(rows=2, cols=80) {
+    function createGridEmpty(rows=10, cols=20) {
       hot = new Handsontable(document.getElementById('hot'), {
         data: Array(rows).fill().map(() => Array(cols).fill("")),
         minRows: -1, minCols: 1,
         rowHeaders: true,
-        colHeaders: Array(cols).fill().map((_, i) => String.fromCharCode(65 + i)),
+        colHeaders: true,
         contextMenu: true,
         manualRowResize: true,
         manualColumnResize: true,
@@ -348,7 +356,125 @@
       }
     };
 
-    // File upload
+
+
+
+
+
+    
+//     window.runCalculation = async function(calcType, selectedColumns, additionalData = {}) {
+//       try {
+//         document.getElementById('result').innerHTML = '<div class="loading">Calculating...</div>';
+
+//         // --- read grid dimensions ---
+//         const cols = hot.countCols();
+//         const rows = hot.countRows();
+
+//         if (cols === 0 || rows === 0) {
+//           document.getElementById('result').innerHTML = '<div style="color:red;">No data in grid</div>';
+//           return;
+//         }
+
+//         // --- helper: convert cell to numeric or null or trimmed string ---
+//         function normalizeCell(v) {
+//           if (v === null || v === undefined) return null;
+//           const s = String(v).trim();
+//           if (s === '') return null;
+//           // remove thousand separators like ',' then test as number
+//           const sNoComma = s.replace(/,/g, '');
+//           // if it's a plain numeric representation, convert to Number
+//           if (!isNaN(sNoComma) && sNoComma !== '') {
+//             return Number(sNoComma);
+//           }
+//           // otherwise return the trimmed string (won't break df creation; non-numeric columns will be coerced)
+//           return s;
+//         }
+
+//         // --- build headers from first row (always treat first row as headers) ---
+//         const firstRow = [];
+//         for (let c = 0; c < cols; c++) {
+//           // Use raw value as header string
+//           const raw = hot.getDataAtCell(0, c);
+//           firstRow.push(raw === null || raw === undefined ? '' : String(raw));
+//         }
+
+//         // --- build data rows from rows AFTER the header, normalizing cell values ---
+//         const gridData = [];
+//         for (let r = 1; r < rows; r++) {
+//           const row = [];
+//           let anyNonEmpty = false;
+//           for (let c = 0; c < cols; c++) {
+//             const raw = hot.getDataAtCell(r, c);
+//             const norm = normalizeCell(raw);
+//             if (norm !== null && norm !== '') anyNonEmpty = true;
+//             row.push(norm);
+//           }
+//           // skip completely-empty rows (optional, keeps data tidy)
+//           if (anyNonEmpty) gridData.push(row);
+//         }
+
+//         // If no observation rows after header, show error
+//         if (!gridData.length) {
+//           document.getElementById('result').innerHTML = '<div style="color:red;">No observation rows detected (grid contains only header or empty rows).</div>';
+//           return;
+//         }
+
+//         // Force server to treat first row as header
+//         additionalData.first_row_is_header = true;
+
+//         // Build payload with numeric conversion already applied
+//         const payload = {
+//           calculation_type: calcType,
+//           data: gridData,
+//           columns: selectedColumns || [],
+//           headers: firstRow.map(h => (h === null || h === undefined ? '' : String(h))),
+//           additional_data: additionalData
+//         };
+
+//         // POST to backend
+//         const response = await fetch('/api/calculate', {
+//           method: 'POST',
+//           headers: {'Content-Type': 'application/json'},
+//           body: JSON.stringify(payload)
+//         });
+
+//         const result = await response.json();
+
+//         if (result.success) {
+//           // Save history entry as before (keeps original snapshot)
+//           resultsHistory.push({
+//             type: calcType,
+//             output_html: result.result,
+//             grid_data: hot.getData(),
+//             headers: payload.headers
+//           });
+
+//           // Render the result using your existing handlers
+//           if (calcType.toLowerCase() === 'correlation') {
+//             renderCorrelationMatrix(result.result);
+//           } else {
+//             renderResults(calcType, result.result);
+//           }
+//         } else {
+//           document.getElementById('result').innerHTML = `<div style="color:red;">Error: ${result.error || 'Unknown'}</div>`;
+//         }
+
+//         closeModal();
+//       } catch (err) {
+//         document.getElementById('result').innerHTML = `<div style="color:red;">Calculation failed: ${err && err.message ? err.message : err}</div>`;
+//       }
+//     };
+
+
+
+
+
+
+
+
+
+
+
     document.getElementById('fileInput').onchange = (e) => {
       const file = e.target.files[0];
       if(!file) return;
@@ -364,7 +490,7 @@
       reader.readAsArrayBuffer(file);
     };
 
-    // Utility functions
+
     function saveData() {
       const data = hot.getData();
       const ws = XLSX.utils.aoa_to_sheet(data);
@@ -376,7 +502,6 @@
     function exportData() {
       alert("Export functionality coming soon!");
     }
-
 
 
     async function exportAllResults() {
@@ -408,9 +533,9 @@
   </script>
 
     <script>
-    // Function to render correlation results as a matrix
+   
     function renderCorrelationMatrix(rawText) {
-    // container to render matrix
+ 
     const container = document.getElementById("result");
     if (!rawText || !rawText.trim()) {
       container.innerHTML = "<p>No correlation matrix data.</p>";
@@ -473,6 +598,100 @@
 
 
   </script>
+
+
+
+
+<!-- for Copy the data in grid s -->
+
+  <script>
+  (function installHandsontablePasteHandler() {
+
+    // normalize a pasted cell: convert plain numeric strings to Number, remove thousands commas
+    function normalizePastedCell(v) {
+      if (v === null || v === undefined) return null;
+      const s = String(v).trim();
+      if (s === '') return null;
+      // remove common thousands separators, then check numeric
+      const sNoComma = s.replace(/,/g, '');
+      if (!isNaN(sNoComma) && sNoComma !== '') return Number(sNoComma);
+      return s;
+    }
+
+    // parse a clipboard row into columns (prefer TSV, fallback to CSV)
+    function parseRowToCells(row) {
+      let cells = row.split('\t');
+      if (cells.length === 1) {
+        // no tabs found — try comma separation (CSV-like)
+        cells = row.split(',');
+      }
+      return cells;
+    }
+
+    document.addEventListener('paste', function(e) {
+      try {
+        if (!window.hot) return;                    // no grid
+        const container = document.getElementById('hot');
+        if (!container) return;
+        // Only intercept paste if the active element is inside our grid container
+        if (!container.contains(document.activeElement)) return;
+
+        const clipboardData = (e.clipboardData || window.clipboardData);
+        if (!clipboardData) return;
+        const text = clipboardData.getData('text');
+        if (!text) return;
+
+        // prevent the browser / Handsontable default paste handling
+        e.preventDefault();
+
+        // parse rows (handle CRLF/LF)
+        const rows = text.split(/\r\n|\n|\r/).filter(r => r.length > 0);
+        if (!rows.length) return;
+
+        // determine starting cell from Handsontable selection
+        // hot.getSelected() returns an array of selections: [[startRow, startCol, endRow, endCol], ...]
+        let sel = hot.getSelected && hot.getSelected();
+        let startRow = 0, startCol = 0;
+        if (Array.isArray(sel) && sel.length && Array.isArray(sel[0])) {
+          startRow = sel[0][0];
+          startCol = sel[0][1];
+        } else {
+          // fallback: place at (0,0)
+          startRow = 0; startCol = 0;
+        }
+
+        // Paste each parsed cell into the grid, expanding grid if necessary
+        for (let r = 0; r < rows.length; r++) {
+          let cells = parseRowToCells(rows[r]);
+          for (let c = 0; c < cells.length; c++) {
+            const rr = startRow + r;
+            const cc = startCol + c;
+
+            // expand rows if paste goes beyond current grid
+            if (rr >= hot.countRows()) {
+              // insert rows at end
+              hot.alter('insert_row', hot.countRows(), rr - hot.countRows() + 1);
+            }
+            // expand cols if paste beyond current grid
+            if (cc >= hot.countCols()) {
+              hot.alter('insert_col', hot.countCols(), cc - hot.countCols() + 1);
+            }
+
+            const rawVal = cells[c];
+            const normalized = normalizePastedCell(rawVal);
+            // use setDataAtCell to trigger Handsontable change logic; provide 'paste' source tag
+            hot.setDataAtCell(rr, cc, normalized, 'paste');
+          }
+        }
+      } catch (err) {
+        // don't break UI on unexpected errors — log in console for debugging
+        console.error('Paste handler error:', err);
+      }
+    }, false);
+
+  })();
+  </script>
+
 
 
 </body>
