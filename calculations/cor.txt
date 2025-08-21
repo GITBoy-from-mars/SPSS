@@ -1,472 +1,3 @@
-
-
-
-
-
-
-
- 
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Correlation Analysis</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header {
-            text-align: center;
-            color: #1976d2;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #1976d2;
-            padding-bottom: 10px;
-        }
-        .control-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #333;
-        }
-        select, input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        select[multiple] {
-            height: 120px;
-        }
-        .button-group {
-            text-align: center;
-            margin: 20px 0;
-        }
-        .btn {
-            background: #1976d2;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin: 0 10px;
-        }
-        .btn:hover {
-            background: #1565c0;
-        }
-        .btn-secondary {
-            background: #757575;
-        }
-        .btn-secondary:hover {
-            background: #616161;
-        }
-        .results-section {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-top: 20px;
-            min-height: 200px;
-        }
-        .results-header {
-            background: #e3f2fd;
-            padding: 15px;
-            border-bottom: 1px solid #ddd;
-            font-weight: bold;
-            color: #1976d2;
-        }
-        .results-content {
-            padding: 20px;
-            white-space: pre-wrap;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.4;
-            min-height: 150px;
-            background: #fafafa;
-        }
-        .error {
-            color: #d32f2f;
-            background: #ffebee;
-            padding: 15px;
-            border-radius: 5px;
-            border: 1px solid #ffcdd2;
-        }
-        .loading {
-            text-align: center;
-            color: #1976d2;
-            font-style: italic;
-        }
-        .method-description {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
-            font-style: italic;
-        }
-        .grid-section {
-            margin: 20px 0;
-        }
-        .grid-container {
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        .grid-header {
-            background: #e3f2fd;
-            padding: 10px;
-            font-weight: bold;
-            color: #1976d2;
-        }
-        #data-grid {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        #data-grid th, #data-grid td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-        #data-grid th {
-            background: #f5f5f5;
-            font-weight: bold;
-        }
-        .add-row-btn {
-            margin: 10px;
-            padding: 8px 16px;
-            background: #4caf50;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .add-row-btn:hover {
-            background: #45a049;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Correlation Analysis Tool</h1>
-            <p>Analyze relationships between variables using different correlation methods</p>
-        </div>
-
-         Data Input Section
-        <div class="grid-section">
-            <div class="grid-container">
-                <div class="grid-header">Data Input Grid</div>
-                <table id="data-grid">
-                    <thead>
-                        <tr id="header-row">
-                            <th>A</th>
-                            <th>B</th>
-                            <th>C</th>
-                            <th>D</th>
-                        </tr>
-                    </thead>
-                    <tbody id="grid-body">
-                        <tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>
-                        <tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>
-                        <tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>
-                        <tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>
-                        <tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>
-                    </tbody>
-                </table>
-                <button class="add-row-btn" onclick="addRow()">Add Row</button>
-            </div>
-        </div> -->
-
-        <!-- Control Section -->
-        <div class="control-section">
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
-                <div class="form-group">
-                    <label for="method">Analysis Method:</label>
-                    <select id="method" onchange="updateMethodDescription()">
-                        <option value="bivariate">Bivariate Correlation</option>
-                        <option value="partial">Partial Correlation</option>
-                        <option value="distances">Distance Matrix</option>
-                    </select>
-                    <div class="method-description" id="method-desc">
-                        Calculate pairwise correlations between selected variables
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="group1">Group 1 Variables:</label>
-                    <select id="group1" multiple>
-                        <option value="0">A</option>
-                        <option value="1">B</option>
-                        <option value="2">C</option>
-                        <option value="3">D</option>
-                    </select>
-                </div>
-
-                <!-- <div class="form-group">
-                    <label for="group2">Group 2 Variables (optional):</label>
-                    <select id="group2" multiple>
-                        <option value="0">A</option>
-                        <option value="1">B</option>
-                        <option value="2">C</option>
-                        <option value="3">D</option>
-                    </select>
-                </div> -->
-            </div>
-
-            <div class="form-group" id="controls-group" style="display: none;">
-                <label for="controls">Control Variables:</label>
-                <select id="controls" multiple>
-                    <option value="0">A</option>
-                    <option value="1">B</option>
-                    <option value="2">C</option>
-                    <option value="3">D</option>
-                </select>
-            </div>
-
-            <div class="button-group">
-                <button class="btn" onclick="calculateCorrelation()">Calculate Correlation</button>
-                <button class="btn btn-secondary" onclick="clearResults()">Clear Results</button>
-                <button class="btn btn-secondary" onclick="clearData()">Clear Data</button>
-            </div>
-        </div>
-
-        <!-- Results Section -->
-        <div class="results-section">
-            <div class="results-header">
-                CORRELATION Results:
-            </div>
-            <div class="results-content" id="results">
-                Click "Calculate Correlation" to see results here...
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Update method description
-        function updateMethodDescription() {
-            const method = document.getElementById('method').value;
-            const desc = document.getElementById('method-desc');
-            const controlsGroup = document.getElementById('controls-group');
-
-            switch(method) {
-                case 'bivariate':
-                    desc.textContent = 'Calculate pairwise correlations between selected variables';
-                    controlsGroup.style.display = 'none';
-                    break;
-                case 'partial':
-                    desc.textContent = 'Calculate correlations while controlling for other variables';
-                    controlsGroup.style.display = 'block';
-                    break;
-                case 'distances':
-                    desc.textContent = 'Calculate Euclidean distances between observations';
-                    controlsGroup.style.display = 'none';
-                    break;
-            }
-        }
-
-        // Add new row to the grid
-        function addRow() {
-            const tbody = document.getElementById('grid-body');
-            const headerCount = document.querySelectorAll('#header-row th').length;
-            const newRow = document.createElement('tr');
-
-            for (let i = 0; i < headerCount; i++) {
-                const cell = document.createElement('td');
-                cell.contentEditable = true;
-                newRow.appendChild(cell);
-            }
-
-            tbody.appendChild(newRow);
-        }
-
-        // Get data from grid
-        function getGridData() {
-            const headers = [];
-            document.querySelectorAll('#header-row th').forEach(th => {
-                headers.push(th.textContent.trim());
-            });
-
-            const data = [];
-            document.querySelectorAll('#grid-body tr').forEach(row => {
-                const rowData = [];
-                row.querySelectorAll('td').forEach(cell => {
-                    const value = cell.textContent.trim();
-                    rowData.push(value);
-                });
-
-                // Only add row if it has at least one non-empty value
-                if (rowData.some(val => val !== '')) {
-                    data.push(rowData);
-                }
-            });
-
-            return { headers, data };
-        }
-
-        // Get selected options from multi-select
-        function getSelectedOptions(selectId) {
-            const select = document.getElementById(selectId);
-            const selected = [];
-            for (let option of select.selectedOptions) {
-                selected.push(parseInt(option.value));
-            }
-            return selected;
-        }
-
-        // Calculate correlation
-        function calculateCorrelation() {
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '<div class="loading">Calculating correlation... Please wait.</div>';
-
-            try {
-                const { headers, data } = getMainGridData();
-
-                if (data.length === 0) {
-                    resultsDiv.innerHTML = '<div class="error">No data entered. Please fill in some values in the grid.</div>';
-                    return;
-                }
-
-                const group1 = getSelectedOptions('group1');
-                const group2 = getSelectedOptions('group2');
-                const controls = getSelectedOptions('controls');
-                const method = document.getElementById('method').value;
-
-                if (group1.length === 0) {
-                    resultsDiv.innerHTML = '<div class="error">Please select at least one variable in Group 1.</div>';
-                    return;
-                }
-
-                const requestData = {
-                    calculation_type: 'correlation',
-                    data: data,
-                    headers: headers,
-                    columns: [], // Not used for correlation
-                    additional_data: {
-                        group1: group1,
-                        group2: group2,
-                        controls: controls,
-                        method: method
-                    }
-                };
-
-                fetch('/api/calculate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestData)
-                })
-                .then(response => response.json())
-                .then(result => {
-                    if (result.success) {
-                        resultsDiv.innerHTML = result.result || 'No results returned';
-                    } else {
-                        resultsDiv.innerHTML = `<div class="error">Error: ${result.error || 'Unknown error occurred'}</div>`;
-                    }
-                })
-                .catch(error => {
-                    console.error('Calculation error:', error);
-                    resultsDiv.innerHTML = `<div class="error">Network error: ${error.message}</div>`;
-                });
-
-            } catch (error) {
-                console.error('Error:', error);
-                resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            }
-        }
-
-        // Clear results
-        function clearResults() {
-            document.getElementById('results').innerHTML = 'Click "Calculate Correlation" to see results here...';
-        }
-
-        // Clear data
-        function clearData() {
-            document.querySelectorAll('#grid-body td').forEach(cell => {
-                cell.textContent = '';
-            });
-            clearResults();
-        }
-
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            updateMethodDescription();
-        });
-
-
-
-        /**
-       * Reads headers and data from the main spreadsheet grid behind the popup.
-       * Expects a table with id="main-grid" in your page outside the modal.
-       */
-      function getMainGridData() {
-        // Get column headers
-        const headers = Array.from(
-          document.querySelectorAll('#main-grid thead th')
-        ).map(th => th.textContent.trim());
-
-        // Get all non-empty rows
-        const data = [];
-        document.querySelectorAll('#main-grid tbody tr').forEach(tr => {
-          const rowVals = Array.from(tr.children).map(td => td.textContent.trim());
-          if (rowVals.some(v => v !== '')) {
-            data.push(rowVals);
-          }
-        });
-
-        return { headers, data };
-      }
-
-
-
-    </script>
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-index.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -480,7 +11,7 @@ index.html
       display: flex; align-items: center; min-height: 56px;
       border-bottom: 1px solid #eaeaea; z-index: 100; position: relative;
     }
-    .menu-logo { height: 38px; margin: 0 18px 0 12px; }
+    .menu-logo { height: 32px; margin: 0 18px 0 12px; width: auto; vertical-align: middle; margin-right: 20px; }
     .menu-title { font-weight: bold; font-size: 18px; margin-right: 40px; }
     #menus { display: flex; }
     .menu-group { position: relative; margin-right: 32px; }
@@ -493,9 +24,10 @@ index.html
     .submenu-group { position:relative; }
     .submenu-content { display:none; position: absolute; left:100%; top:0; min-width:170px; background:#fff; box-shadow:0 4px 20px #0002; border-radius:4px; padding:7px 0; z-index:1100;}
     .dropdown-content .submenu-group:hover .submenu-content { display: block;}
-    #hot { margin: 28px auto 0 auto; width: 95%; max-width: 1100px; z-index: 1 !important; }
-    #result { font-weight: bold; margin-top: 16px; margin-left: 6px; min-height: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px; }
-    #version { margin-left: auto; margin-right: 36px; font-size: 13px; color: #777; }
+    .main-flex-wrapper { display: flex; align-items: flex-start; gap: 12px;}
+    #hot { position: relative; margin: 28px auto 0 auto; width: auto !important; max-width: 1100px; z-index: 1 !important; }
+    #result {position: relative; z-index: 2; flex: 0 0 300px; max-width: 420px; min-width: 270px; overflow: auto; height: calc(100vh - 96px); font-weight: bold; margin-top: 16px; margin-left: 6px; min-height: 20px; padding: 20px; background: #f5f5f5; border-radius: 4px; }
+    #version { margin-left: auto; margin-right: 20px; font-size: 13px; color: #777; }
     #modal { display: none; position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;}
     #modal iframe { background:#fff; border-radius:8px; border:none; width:500px; height:400px; }
     #fileInput { display: none; }
@@ -549,8 +81,15 @@ index.html
   
   <input type="file" id="fileInput" accept=".xlsx,.xls">
 
-  <div style="display: flex; align-items: flex-start;">
+  <!-- <div style="display: flex; align-items: flex-start;">
   <div id="result" style="min-width:270px; max-width:420px; margin-right:20px;"></div>
+  <div style="flex:1;">
+    <div id="hot"></div>
+  </div>
+</div> -->
+
+<div class="main-flex-wrapper">
+  <div id="result"></div>
   <div style="flex:1;">
     <div id="hot"></div>
   </div>
@@ -606,7 +145,7 @@ index.html
           //   {text: "T-Test", action: ()=>showCalculationPopup('ttest')},
           //   {text: "One-Way ANOVA", action: ()=>showCalculationPopup('anova')}
           // ]},
-          {text: "Correlate", submenu: [
+          {text: "Correlation", submenu: [
             {text: "Bivariate/Partial/Distances", action: ()=>showCalculationPopup('correlation')},
             // {text: "Partial", action: ()=>showCalculationPopup('partial_correlation')},
             // {text: "Distance", action: ()=>showCalculationPopup('distances_correlation')}
@@ -634,12 +173,12 @@ index.html
 
     // Handsontable initializatio n
     let hot;
-    function createGridEmpty(rows=2, cols=80) {
+    function createGridEmpty(rows=10, cols=20) {
       hot = new Handsontable(document.getElementById('hot'), {
         data: Array(rows).fill().map(() => Array(cols).fill("")),
         minRows: -1, minCols: 1,
         rowHeaders: true,
-        colHeaders: Array(cols).fill().map((_, i) => String.fromCharCode(65 + i)),
+        colHeaders: true,
         contextMenu: true,
         manualRowResize: true,
         manualColumnResize: true,
@@ -762,59 +301,51 @@ index.html
         
         if(result.success) {
 
+          if (calcType.toLowerCase() === 'correlation') {
+            renderCorrelationMatrix(result.result);} 
 
-          // function renderResult(calcType, htmlContent) {
-          //   // You can add more universal box styling here if you want
-          //   document.getElementById('result').innerHTML = `
-          //     <div style="font-family:arial,sans-serif;width:99%;max-width:380px;">
-          //       <span style='font-weight:bold;font-size:17px;padding-bottom:5px;display:block;'>
-          //         ${calcType.toUpperCase()} Results:
-          //       </span>
-          //       ${htmlContent}
-          //     </div>
-          //   `;
-          // }
+          else {
+          
+            function renderResults(calcType, rawHtml) {
+              // Build the header
+              let html = `<h4> ${calcType.toUpperCase()} Results:</h4>`;
 
-          function renderResults(calcType, rawHtml) {
-            // Build the header
-            let html = `<h4> ${calcType.toUpperCase()} Results:</h4>`;
+              // rawHtml already contains each column's <div>…</div>
+              // Wrap each in your simple box styling:
+              const temp = document.createElement('div');
+              temp.innerHTML = rawHtml.trim();
 
-            // rawHtml already contains each column's <div>…</div>
-            // Wrap each in your simple box styling:
-            const temp = document.createElement('div');
-            temp.innerHTML = rawHtml.trim();
+              // For each child DIV, grab its innerText and wrap it
+              Array.from(temp.children).forEach(child => {
+                const text = child.innerText.trim().replace(/\n/g, '<br>');
+                html += `<div class="result-block">${text}</div>`;
+              });
 
-            // For each child DIV, grab its innerText and wrap it
-            Array.from(temp.children).forEach(child => {
-              const text = child.innerText.trim().replace(/\n/g, '<br>');
-              html += `<div class="result-block">${text}</div>`;
-            });
+              // Finally inject
+              document.getElementById('result').innerHTML = html;
+            }
 
-            // Finally inject
-            document.getElementById('result').innerHTML = html;
+            // In your runCalculation success block:
+            if (result.success) {
+              renderResults(calcType, result.result);
+              resultsHistory.push({ type: calcType, output_html: result.result });
+              closeModal();
+            }
+
+
+            // document.getElementById('result').innerHTML = `
+            //   <h4>${calcType.toUpperCase()} Results:</h4>
+            //   <div>${result.result}</div>`;
+            //   resultsHistory.push({
+            //   type: calcType,
+            //   output_html: result.result
+            // });
           }
 
-          // In your runCalculation success block:
-          if (result.success) {
-            renderResults(calcType, result.result);
-            resultsHistory.push({ type: calcType, output_html: result.result });
-            closeModal();
-          }
-
-
+        
           // document.getElementById('result').innerHTML = `
-          //   <h4>${calcType.toUpperCase()} Results:</h4>
-          //   <div>${result.result}</div>`;
-          //   resultsHistory.push({
-          //   type: calcType,
-          //   output_html: result.result
-          // });
-        }
-
-        else {
-          document.getElementById('result').innerHTML = `
-            <div style="color: red;">Error: ${result.error}</div>
-          `;
+          //   <div style="color: red;">Error: ${result.error}</div>
+          // `;
         }
         
         closeModal();
@@ -825,7 +356,125 @@ index.html
       }
     };
 
-    // File upload
+
+
+
+
+
+    
+//     window.runCalculation = async function(calcType, selectedColumns, additionalData = {}) {
+//       try {
+//         document.getElementById('result').innerHTML = '<div class="loading">Calculating...</div>';
+
+//         // --- read grid dimensions ---
+//         const cols = hot.countCols();
+//         const rows = hot.countRows();
+
+//         if (cols === 0 || rows === 0) {
+//           document.getElementById('result').innerHTML = '<div style="color:red;">No data in grid</div>';
+//           return;
+//         }
+
+//         // --- helper: convert cell to numeric or null or trimmed string ---
+//         function normalizeCell(v) {
+//           if (v === null || v === undefined) return null;
+//           const s = String(v).trim();
+//           if (s === '') return null;
+//           // remove thousand separators like ',' then test as number
+//           const sNoComma = s.replace(/,/g, '');
+//           // if it's a plain numeric representation, convert to Number
+//           if (!isNaN(sNoComma) && sNoComma !== '') {
+//             return Number(sNoComma);
+//           }
+//           // otherwise return the trimmed string (won't break df creation; non-numeric columns will be coerced)
+//           return s;
+//         }
+
+//         // --- build headers from first row (always treat first row as headers) ---
+//         const firstRow = [];
+//         for (let c = 0; c < cols; c++) {
+//           // Use raw value as header string
+//           const raw = hot.getDataAtCell(0, c);
+//           firstRow.push(raw === null || raw === undefined ? '' : String(raw));
+//         }
+
+//         // --- build data rows from rows AFTER the header, normalizing cell values ---
+//         const gridData = [];
+//         for (let r = 1; r < rows; r++) {
+//           const row = [];
+//           let anyNonEmpty = false;
+//           for (let c = 0; c < cols; c++) {
+//             const raw = hot.getDataAtCell(r, c);
+//             const norm = normalizeCell(raw);
+//             if (norm !== null && norm !== '') anyNonEmpty = true;
+//             row.push(norm);
+//           }
+//           // skip completely-empty rows (optional, keeps data tidy)
+//           if (anyNonEmpty) gridData.push(row);
+//         }
+
+//         // If no observation rows after header, show error
+//         if (!gridData.length) {
+//           document.getElementById('result').innerHTML = '<div style="color:red;">No observation rows detected (grid contains only header or empty rows).</div>';
+//           return;
+//         }
+
+//         // Force server to treat first row as header
+//         additionalData.first_row_is_header = true;
+
+//         // Build payload with numeric conversion already applied
+//         const payload = {
+//           calculation_type: calcType,
+//           data: gridData,
+//           columns: selectedColumns || [],
+//           headers: firstRow.map(h => (h === null || h === undefined ? '' : String(h))),
+//           additional_data: additionalData
+//         };
+
+//         // POST to backend
+//         const response = await fetch('/api/calculate', {
+//           method: 'POST',
+//           headers: {'Content-Type': 'application/json'},
+//           body: JSON.stringify(payload)
+//         });
+
+//         const result = await response.json();
+
+//         if (result.success) {
+//           // Save history entry as before (keeps original snapshot)
+//           resultsHistory.push({
+//             type: calcType,
+//             output_html: result.result,
+//             grid_data: hot.getData(),
+//             headers: payload.headers
+//           });
+
+//           // Render the result using your existing handlers
+//           if (calcType.toLowerCase() === 'correlation') {
+//             renderCorrelationMatrix(result.result);
+//           } else {
+//             renderResults(calcType, result.result);
+//           }
+//         } else {
+//           document.getElementById('result').innerHTML = `<div style="color:red;">Error: ${result.error || 'Unknown'}</div>`;
+//         }
+
+//         closeModal();
+//       } catch (err) {
+//         document.getElementById('result').innerHTML = `<div style="color:red;">Calculation failed: ${err && err.message ? err.message : err}</div>`;
+//       }
+//     };
+
+
+
+
+
+
+
+
+
+
+
     document.getElementById('fileInput').onchange = (e) => {
       const file = e.target.files[0];
       if(!file) return;
@@ -841,7 +490,7 @@ index.html
       reader.readAsArrayBuffer(file);
     };
 
-    // Utility functions
+
     function saveData() {
       const data = hot.getData();
       const ws = XLSX.utils.aoa_to_sheet(data);
@@ -853,7 +502,6 @@ index.html
     function exportData() {
       alert("Export functionality coming soon!");
     }
-
 
 
     async function exportAllResults() {
@@ -884,67 +532,37 @@ index.html
 
   </script>
 
-  <script>
-  // Function to render correlation results as a matrix
-
-  function renderCorrelationMatrix(rawText) {
+    <script>
+   
+    function renderCorrelationMatrix(rawText) {
+ 
     const container = document.getElementById("result");
     if (!rawText || !rawText.trim()) {
-      container.innerHTML = "<p>No correlation results available.</p>";
+      container.innerHTML = "<p>No correlation matrix data.</p>";
       return;
     }
 
-    // Regular expression to match each correlation entry
-    const regex = /([A-Z])\s*vs\s*([A-Z])\(Pearson\):r\s*=\s*([\d\.\-]+),\s*p\s*=\s*([\d\.\-]+)Strength:\s*([\w]+)\s*\((\w+)\)/g;
-    let match;
-    const entries = [];
-    const variablesSet = new Set();
+    // Parse your rawText and build a matrix table here
+    // Example assumes rawText is CSV-like matrix data
 
-    while ((match = regex.exec(rawText)) !== null) {
-      const [full, var1, var2, r, p, strength, direction] = match;
-      entries.push({ var1, var2, r: parseFloat(r) });
-      variablesSet.add(var1);
-      variablesSet.add(var2);
-    }
+    // Example: parsing raw text rows and columns
+    const rows = rawText.trim().split('\n');
+    let html = '<h4>Correlation Matrix</h4>';
+    html += '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;">';
 
-    if (entries.length === 0) {
-      container.innerHTML = "<p>Unable to parse correlation results.</p>";
-      return;
-    }
-
-    // Sort variables alphabetically
-    const variables = Array.from(variablesSet).sort();
-
-    // Create lookup for correlation values including diagonal
-    const lookup = {};
-    variables.forEach(v => lookup[`${v}-${v}`] = "1.000");
-    entries.forEach(({ var1, var2, r }) => {
-      lookup[`${var1}-${var2}`] = r.toFixed(3);
-      lookup[`${var2}-${var1}`] = r.toFixed(3);
-    });
-
-    // Build HTML table for correlation matrix
-    let html = '<h4>📊 Correlation Matrix</h4>';
-    html += '<table border="1" cellspacing="0" cellpadding="5" style="border-collapse: collapse; font-family: Arial, sans-serif;">';
-
-    // Header row
-    html += '<thead><tr><th></th>';
-    variables.forEach(v => { html += `<th>${v}</th>`; });
-    html += '</tr></thead><tbody>';
-
-    // Rows
-    variables.forEach(rowVar => {
-      html += `<tr><th>${rowVar}</th>`;
-      variables.forEach(colVar => {
-        html += `<td style="text-align: center;">${lookup[`${rowVar}-${colVar}`] || "N/A"}</td>`;
+    rows.forEach(row => {
+      html += '<tr>';
+      const cols = row.split(/\s+/); // split by whitespace, change if needed
+      cols.forEach(col => {
+        html += `<td style="text-align:center;">${col}</td>`;
       });
       html += '</tr>';
     });
 
-    html += '</tbody></table>';
-
+    html += '</table>';
     container.innerHTML = html;
   }
+  
 
   // Generic render function – calls correlation matrix renderer if type is correlation
   function renderResults(calcType, rawText) {
@@ -980,6 +598,100 @@ index.html
 
 
   </script>
+
+
+
+
+<!-- for Copy the data in grid s -->
+
+  <script>
+  (function installHandsontablePasteHandler() {
+
+    // normalize a pasted cell: convert plain numeric strings to Number, remove thousands commas
+    function normalizePastedCell(v) {
+      if (v === null || v === undefined) return null;
+      const s = String(v).trim();
+      if (s === '') return null;
+      // remove common thousands separators, then check numeric
+      const sNoComma = s.replace(/,/g, '');
+      if (!isNaN(sNoComma) && sNoComma !== '') return Number(sNoComma);
+      return s;
+    }
+
+    // parse a clipboard row into columns (prefer TSV, fallback to CSV)
+    function parseRowToCells(row) {
+      let cells = row.split('\t');
+      if (cells.length === 1) {
+        // no tabs found — try comma separation (CSV-like)
+        cells = row.split(',');
+      }
+      return cells;
+    }
+
+    document.addEventListener('paste', function(e) {
+      try {
+        if (!window.hot) return;                    // no grid
+        const container = document.getElementById('hot');
+        if (!container) return;
+        // Only intercept paste if the active element is inside our grid container
+        if (!container.contains(document.activeElement)) return;
+
+        const clipboardData = (e.clipboardData || window.clipboardData);
+        if (!clipboardData) return;
+        const text = clipboardData.getData('text');
+        if (!text) return;
+
+        // prevent the browser / Handsontable default paste handling
+        e.preventDefault();
+
+        // parse rows (handle CRLF/LF)
+        const rows = text.split(/\r\n|\n|\r/).filter(r => r.length > 0);
+        if (!rows.length) return;
+
+        // determine starting cell from Handsontable selection
+        // hot.getSelected() returns an array of selections: [[startRow, startCol, endRow, endCol], ...]
+        let sel = hot.getSelected && hot.getSelected();
+        let startRow = 0, startCol = 0;
+        if (Array.isArray(sel) && sel.length && Array.isArray(sel[0])) {
+          startRow = sel[0][0];
+          startCol = sel[0][1];
+        } else {
+          // fallback: place at (0,0)
+          startRow = 0; startCol = 0;
+        }
+
+        // Paste each parsed cell into the grid, expanding grid if necessary
+        for (let r = 0; r < rows.length; r++) {
+          let cells = parseRowToCells(rows[r]);
+          for (let c = 0; c < cells.length; c++) {
+            const rr = startRow + r;
+            const cc = startCol + c;
+
+            // expand rows if paste goes beyond current grid
+            if (rr >= hot.countRows()) {
+              // insert rows at end
+              hot.alter('insert_row', hot.countRows(), rr - hot.countRows() + 1);
+            }
+            // expand cols if paste beyond current grid
+            if (cc >= hot.countCols()) {
+              hot.alter('insert_col', hot.countCols(), cc - hot.countCols() + 1);
+            }
+
+            const rawVal = cells[c];
+            const normalized = normalizePastedCell(rawVal);
+            // use setDataAtCell to trigger Handsontable change logic; provide 'paste' source tag
+            hot.setDataAtCell(rr, cc, normalized, 'paste');
+          }
+        }
+      } catch (err) {
+        // don't break UI on unexpected errors — log in console for debugging
+        console.error('Paste handler error:', err);
+      }
+    }, false);
+
+  })();
+  </script>
+
 
 
 </body>

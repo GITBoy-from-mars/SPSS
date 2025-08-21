@@ -263,17 +263,6 @@
       try {
         document.getElementById('result').innerHTML = '<div class="loading">Calculating...</div>';
 
-
-        // if (result.success) {
-        //   // Save both grid data and result HTML
-        //   resultsHistory.push({
-        //     type: calcType,
-        //     output_html: result.result,
-        //     grid_data: hot.getData(),             // full 2D array snapshot
-        //     headers: hot.getColHeader()           // header names
-        //   });
-        // }
-        
         // Get data from grid
         const gridData = [];
         for(let r = 1; r < hot.countRows(); r++) {
@@ -302,9 +291,8 @@
         if(result.success) {
 
           if (calcType.toLowerCase() === 'correlation') {
-            renderCorrelationMatrix(result.result);} 
-
-          else {
+            renderCorrelationMatrix(result.result);
+          } else {
           
             function renderResults(calcType, rawHtml) {
               // Build the header
@@ -331,23 +319,9 @@
               resultsHistory.push({ type: calcType, output_html: result.result });
               closeModal();
             }
-
-
-            // document.getElementById('result').innerHTML = `
-            //   <h4>${calcType.toUpperCase()} Results:</h4>
-            //   <div>${result.result}</div>`;
-            //   resultsHistory.push({
-            //   type: calcType,
-            //   output_html: result.result
-            // });
           }
-
-        
-          // document.getElementById('result').innerHTML = `
-          //   <div style="color: red;">Error: ${result.error}</div>
-          // `;
         }
-        
+        // ensure modal closed
         closeModal();
       } catch(error) {
         document.getElementById('result').innerHTML = `
@@ -355,125 +329,6 @@
         `;
       }
     };
-
-
-
-
-
-
-    
-//     window.runCalculation = async function(calcType, selectedColumns, additionalData = {}) {
-//       try {
-//         document.getElementById('result').innerHTML = '<div class="loading">Calculating...</div>';
-
-//         // --- read grid dimensions ---
-//         const cols = hot.countCols();
-//         const rows = hot.countRows();
-
-//         if (cols === 0 || rows === 0) {
-//           document.getElementById('result').innerHTML = '<div style="color:red;">No data in grid</div>';
-//           return;
-//         }
-
-//         // --- helper: convert cell to numeric or null or trimmed string ---
-//         function normalizeCell(v) {
-//           if (v === null || v === undefined) return null;
-//           const s = String(v).trim();
-//           if (s === '') return null;
-//           // remove thousand separators like ',' then test as number
-//           const sNoComma = s.replace(/,/g, '');
-//           // if it's a plain numeric representation, convert to Number
-//           if (!isNaN(sNoComma) && sNoComma !== '') {
-//             return Number(sNoComma);
-//           }
-//           // otherwise return the trimmed string (won't break df creation; non-numeric columns will be coerced)
-//           return s;
-//         }
-
-//         // --- build headers from first row (always treat first row as headers) ---
-//         const firstRow = [];
-//         for (let c = 0; c < cols; c++) {
-//           // Use raw value as header string
-//           const raw = hot.getDataAtCell(0, c);
-//           firstRow.push(raw === null || raw === undefined ? '' : String(raw));
-//         }
-
-//         // --- build data rows from rows AFTER the header, normalizing cell values ---
-//         const gridData = [];
-//         for (let r = 1; r < rows; r++) {
-//           const row = [];
-//           let anyNonEmpty = false;
-//           for (let c = 0; c < cols; c++) {
-//             const raw = hot.getDataAtCell(r, c);
-//             const norm = normalizeCell(raw);
-//             if (norm !== null && norm !== '') anyNonEmpty = true;
-//             row.push(norm);
-//           }
-//           // skip completely-empty rows (optional, keeps data tidy)
-//           if (anyNonEmpty) gridData.push(row);
-//         }
-
-//         // If no observation rows after header, show error
-//         if (!gridData.length) {
-//           document.getElementById('result').innerHTML = '<div style="color:red;">No observation rows detected (grid contains only header or empty rows).</div>';
-//           return;
-//         }
-
-//         // Force server to treat first row as header
-//         additionalData.first_row_is_header = true;
-
-//         // Build payload with numeric conversion already applied
-//         const payload = {
-//           calculation_type: calcType,
-//           data: gridData,
-//           columns: selectedColumns || [],
-//           headers: firstRow.map(h => (h === null || h === undefined ? '' : String(h))),
-//           additional_data: additionalData
-//         };
-
-//         // POST to backend
-//         const response = await fetch('/api/calculate', {
-//           method: 'POST',
-//           headers: {'Content-Type': 'application/json'},
-//           body: JSON.stringify(payload)
-//         });
-
-//         const result = await response.json();
-
-//         if (result.success) {
-//           // Save history entry as before (keeps original snapshot)
-//           resultsHistory.push({
-//             type: calcType,
-//             output_html: result.result,
-//             grid_data: hot.getData(),
-//             headers: payload.headers
-//           });
-
-//           // Render the result using your existing handlers
-//           if (calcType.toLowerCase() === 'correlation') {
-//             renderCorrelationMatrix(result.result);
-//           } else {
-//             renderResults(calcType, result.result);
-//           }
-//         } else {
-//           document.getElementById('result').innerHTML = `<div style="color:red;">Error: ${result.error || 'Unknown'}</div>`;
-//         }
-
-//         closeModal();
-//       } catch (err) {
-//         document.getElementById('result').innerHTML = `<div style="color:red;">Calculation failed: ${err && err.message ? err.message : err}</div>`;
-//       }
-//     };
-
-
-
-
-
-
-
-
-
-
 
     document.getElementById('fileInput').onchange = (e) => {
       const file = e.target.files[0];
@@ -534,34 +389,41 @@
 
     <script>
    
-    function renderCorrelationMatrix(rawText) {
- 
-    const container = document.getElementById("result");
-    if (!rawText || !rawText.trim()) {
-      container.innerHTML = "<p>No correlation matrix data.</p>";
-      return;
+    // New renderCorrelationMatrix: insert server HTML as-is and push to resultsHistory so export finds it.
+    function escapeHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
-    // Parse your rawText and build a matrix table here
-    // Example assumes rawText is CSV-like matrix data
+    function renderCorrelationMatrix(rawHtml) {
+      const container = document.getElementById("result");
+      if (!rawHtml || !rawHtml.trim()) {
+        container.innerHTML = "<p>No correlation matrix data.</p>";
+        return;
+      }
 
-    // Example: parsing raw text rows and columns
-    const rows = rawText.trim().split('\n');
-    let html = '<h4>Correlation Matrix</h4>';
-    html += '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;">';
+      // If server returned HTML markup, inject it directly so tables and formatting remain intact.
+      if (/<\/?[a-z][\s\S]*>/i.test(rawHtml)) {
+        container.innerHTML = rawHtml;
+      } else {
+        // fallback: show raw text in preformatted block
+        container.innerHTML = '<h4>Correlation Matrix</h4><pre style="font-family:monospace;white-space:pre-wrap;">' + escapeHtml(rawHtml) + '</pre>';
+      }
 
-    rows.forEach(row => {
-      html += '<tr>';
-      const cols = row.split(/\s+/); // split by whitespace, change if needed
-      cols.forEach(col => {
-        html += `<td style="text-align:center;">${col}</td>`;
-      });
-      html += '</tr>';
-    });
-
-    html += '</table>';
-    container.innerHTML = html;
-  }
+      // Save to resultsHistory for export (avoid duplicating identical last entry)
+      try {
+        const last = resultsHistory.length ? resultsHistory[resultsHistory.length - 1] : null;
+        if (!last || last.type !== 'correlation' || last.output_html !== rawHtml) {
+          resultsHistory.push({
+            type: 'correlation',
+            output_html: rawHtml,
+            grid_data: (window.hot && window.hot.getData) ? window.hot.getData() : null,
+            headers: (window.hot && window.hot.getColHeader) ? window.hot.getColHeader() : null
+          });
+        }
+      } catch (e) {
+        console.warn('Could not save correlation to history:', e);
+      }
+    }
   
 
   // Generic render function – calls correlation matrix renderer if type is correlation
@@ -594,13 +456,7 @@
     }
   }
 
-
-
-
   </script>
-
-
-
 
 <!-- for Copy the data in grid s -->
 
@@ -691,8 +547,6 @@
 
   })();
   </script>
-
-
 
 </body>
 </html>

@@ -1,73 +1,3 @@
-# # def calculate(columns, method='pearson'):
-# #     import numpy as np
-# #     from scipy.stats import pearsonr, spearmanr, kendalltau, pointbiserialr
-
-# #     if len(columns) != 2:
-# #         return {'error': "Please select exactly two columns for correlation."}
-
-# #     x = columns[0]
-# #     y = columns[1]
-# #     if len(x) != len(y):
-# #         return {'error': "Columns must be the same length."}
-
-# #     def describe(r):
-# #         if r is None:
-# #             return {"direction": "None", "strength": "None"}
-# #         if r == 1 or r == -1:
-# #             strength = "Perfect"
-# #         elif abs(r) >= 0.7:
-# #             strength = "Strong"
-# #         elif abs(r) >= 0.3:
-# #             strength = "Moderate"
-# #         elif abs(r) > 0:
-# #             strength = "Weak"
-# #         else:
-# #             strength = "No"
-# #         direction = "Positive" if r > 0 else ("Negative" if r < 0 else "None")
-# #         return {"direction": direction, "strength": strength}
-
-# #     result = {}
-
-# #     try:
-# #         if method == "pearson":
-# #             r, p = pearsonr(x, y)
-# #             res_type = "Pearson (linear, continuous)"
-# #         elif method == "spearman":
-# #             r, p = spearmanr(x, y)
-# #             res_type = "Spearman (rank, monotonic)"
-# #         elif method == "kendall":
-# #             r, p = kendalltau(x, y)
-# #             res_type = "Kendall's Tau (rank, robust for ties)"
-# #         elif method == "point_biserial":
-# #             if len(set(x)) == 2:
-# #                 r, p = pointbiserialr(x, y)
-# #                 res_type = "Point-Biserial (binary-continuous)"
-# #             elif len(set(y)) == 2:
-# #                 r, p = pointbiserialr(y, x)
-# #                 res_type = "Point-Biserial (binary-continuous)"
-# #             else:
-# #                 return {'error': 'One variable must be binary for Point-Biserial.'}
-# #         else:
-# #             return {'error': 'Unknown method.'}
-
-# #         result['correlation'] = round(r, 4)
-# #         result['p_value'] = round(p, 4)
-# #         result['method'] = res_type
-# #         result.update(describe(r))
-# #         result['interpretation'] = (
-# #             f"{result['strength']} {result['direction']} correlation "
-# #             f"({res_type}): r = {round(r, 4)}, p = {round(p, 4)}"
-# #         )
-# #         return result
-
-# #     except Exception as e:
-# #         return {'error': str(e)}
-
-
-
-
-
-
 
 
 
@@ -1001,60 +931,170 @@
 
 
 
+# import pandas as pd
+# import numpy as np
+# from scipy.stats import pearsonr, spearmanr
+# from sklearn.metrics import pairwise_distances
+
+# def _partial_correlation(x, y, controls_df):
+#     X = controls_df.values
+#     if X.ndim == 1:
+#         X = X.reshape(-1, 1)
+#     X = np.column_stack([np.ones(len(X)), X])
+#     beta_x, *_ = np.linalg.lstsq(X, x.values, rcond=None)
+#     res_x = x.values - X.dot(beta_x)
+#     beta_y, *_ = np.linalg.lstsq(X, y.values, rcond=None)
+#     res_y = y.values - X.dot(beta_y)
+#     return pearsonr(res_x, res_y)
+
+# def calculate(data, selected_columns, headers, additional_data={}):
+#     try:
+#         if not data:
+#             return "<div style='font-family: Arial; color: #d32f2f;'>No data provided.</div>"
+
+#         df = pd.DataFrame(data, columns=headers[:len(data[0])])
+
+#         method = additional_data.get('method', 'bivariate')
+#         submethod = additional_data.get('submethod', None)
+#         group1 = additional_data.get('group1', [])
+#         group2 = additional_data.get('group2', [])
+#         controls = additional_data.get('controls', [])
+
+#         names1 = [headers[i] for i in group1 if i < len(headers)]
+#         names2 = [headers[i] for i in group2 if i < len(headers)]
+#         ctrl_names = [headers[i] for i in controls if i < len(headers)]
+
+#         for col in set(names1 + names2 + ctrl_names):
+#             df[col] = pd.to_numeric(df[col], errors='coerce')
+
+#         result_html = ""
 
 
+#         if method == 'bivariate':
+#             corr_func = pearsonr if submethod != "spearman" else spearmanr
+#             label = "Pearson" if submethod != "spearman" else "Spearman"
+
+#             if names2:
+#                 rows, cols = names1, names2
+#                 result_html += f"<p><strong>Correlation ({label}) — Group1 vs Group2</strong></p>"
+#                 result_html += "<table border='1' cellpadding='6' style='border-collapse:collapse;'><tr><th></th>"
+#                 result_html += "".join(f"<th>{c}</th>" for c in cols)
+#                 result_html += "</tr>"
+#                 for rname in rows:
+#                     result_html += f"<tr><th>{rname}</th>"
+#                     for cname in cols:
+#                         pair = df[[rname, cname]].dropna()
+#                         n = int(pair.shape[0])
+#                         if n >= 2 and pair[rname].nunique() > 1 and pair[cname].nunique() > 1:
+#                             r, p = corr_func(pair[rname], pair[cname])
+#                             result_html += f"<td style='text-align:center;'>r={r:.4f}<br>p={p:.4f}<br>N={n}</td>"
+#                         else:
+#                             result_html += "<td>—</td>" if n == 0 else f"<td>—<br>N={n}</td>"
+#                     result_html += "</tr>"
+#                 result_html += "</table>"
+
+#             else:
+#                 cols = list(names1)
+#                 if len(cols) < 2:
+#                     return "<div style='color:#d32f2f;'>Need at least two variables.</div>"
+
+#                 result_html += f"<p><strong>{label}-Correlation</strong></p>"
+#                 result_html += "<table <tr><th></th>"
+#                 result_html += "".join(f"<th>{c}</th>" for c in cols)
+#                 result_html += "</tr>"
+
+#                 for i, a in enumerate(cols):
+#                     result_html += f"<tr><th>{a}</th>"
+#                     for j, b in enumerate(cols):
+#                         if i == j:
+#                             n_diag = int(df[a].dropna().shape[0])
+#                             result_html += f"<td>r=1.0000<br>p=0.0000<br>N={n_diag}</td>"
+#                         else:
+#                             pair = df[[a, b]].dropna()
+#                             n = int(pair.shape[0])
+#                             if n >= 2 and pair[a].nunique() > 1 and pair[b].nunique() > 1:
+#                                 r, p = corr_func(pair[a], pair[b])
+#                                 result_html += f"<td>r={r:.4f}<br>p={p:.4f}<br>N={n}</td>"
+#                             else:
+#                                 result_html += "<td>—</td>" if n == 0 else f"<td>—<br>N={n}</td>"
+#                     result_html += "</tr>"
+#                 result_html += "</table>"
+
+
+
+
+#         elif method == 'partial':
+#             cols = (names1 + names2) if names2 else list(names1)
+#             # remove duplicates while preserving order
+#             seen = set()
+#             cols = [c for c in cols if not (c in seen or seen.add(c))]
+#             if len(cols) < 2:
+#                 return "<div style='font-family: Arial; color: #d32f2f;'>Need at least two target variables for partial correlation.</div>"
+
+#             result_html += "<p><strong>Partial-Correlation<br>(controlling-for:-{})</strong></p>".format(", ".join(ctrl_names))
+#             result_html += "<table <tr><th></th>"
+#             result_html += "".join(f"<th>{c}</th>" for c in cols)
+#             result_html += "</tr>"
+
+#             for i, a in enumerate(cols):
+#                 result_html += f"<tr><th>{a}</th>"
+#                 for j, b in enumerate(cols):
+#                     if i == j:
+#                         n_diag = int(df[a].dropna().shape[0])
+#                         if n_diag > 0:
+#                             result_html += f"<td>—<br>N={n_diag}</td>"
+#                         else:
+#                             result_html += "<td>—</td>"
+#                         continue
+#                     pair_plus_ctrl = df[[a, b] + ctrl_names].dropna()
+#                     n = int(pair_plus_ctrl.shape[0])
+#                     if n >= 2 and pair_plus_ctrl[a].nunique() > 1 and pair_plus_ctrl[b].nunique() > 1:
+#                         try:
+#                             r, p = _partial_correlation(pair_plus_ctrl[a], pair_plus_ctrl[b], pair_plus_ctrl[ctrl_names])
+#                             result_html += f"<td>r={r:.4f}<br>p={p:.4f}<br>N={n}</td>"
+#                         except Exception:
+#                             result_html += f"<td>Err<br>N={n}</td>"
+#                     else:
+#                         result_html += "<td>—</td>" if n == 0 else f"<td>—<br>N={n}</td>"
+#                 result_html += "</tr>"
+#             result_html += "</table>"
+
+#     # ----------------------------
+#     # DISTANCES
+#     # ----------------------------
 #         elif method == 'distances':
 #             cols = names1 + names2
 #             if not cols:
-#                 return "<div style='font-family: Arial; color: #d32f2f;'>Select variables for distance calculation.</div>"
-
-#             # keep only complete cases for the selected variables
+#                 return "<div style='color:#d32f2f;'>Select variables for distance calculation.</div>"
 #             arr_df = df[cols].apply(pd.to_numeric, errors='coerce').dropna()
+#             if arr_df.shape[0] < 1:
+#                 return "<div style='color:#d32f2f;'>Insufficient complete observations.</div>"
 
-#             n_obs = int(arr_df.shape[0])
-#             if n_obs < 1:
-#                 return "<div style='font-family: Arial; color: #d32f2f;'>Insufficient complete observations for distance calculation.</div>"
-
-#             # compute pairwise Euclidean distances
 #             arr = arr_df.to_numpy()
-#             dist = pairwise_distances(arr, metric='euclidean')
+#             if submethod == "varwise":
+#                 dist = pairwise_distances(arr.T, metric="euclidean")
+#                 labels = cols
+#                 title = "Variable-wise Distances"
+#             else:
+#                 dist = pairwise_distances(arr, metric="euclidean")
+#                 # labels = [f"Obs {i+1}" for i in arr_df.index]
+#                 labels = [str(i+1) for i in range(len(arr_df))]
+#                 title = "Case-wise Distances"
 
-#             # Preserve original row numbers so user can map back to source rows
-#             # If your df rows are 0-indexed original observations, display them as 1-indexed.
-#             obs_indices = list(arr_df.index)
-#             obs_labels = [f"Obs {idx+1}" for idx in obs_indices]  # change +1 if you want zero-based
+#             result_html += f"<p><strong>{title}</strong></p>"
+#             result_html += "<table <tr><th></th>"
+#             result_html += "".join(f"<th>{c}</th>" for c in labels) + "</tr>"
 
-#             # Build a scrollable, nicely formatted HTML table
-#             result_html += f"<p><strong>Euclidean-Distances<br>(observations(N={n_obs}))</strong></p>"
-#             result_html += (
-#                 "<div>"
-#             )
-#             result_html += (
-#                 "<table "
-#                 ""
-#             )
-
-#             # header row (top-left empty cell)
-#             result_html += "<thead><tr><th></th>"
-#             for lbl in obs_labels:
-#                 result_html += f"<th>{lbl}</th>"
-#             result_html += "</tr></thead><tbody>"
-
-#             # table body: left header + distance cells
 #             for i, row in enumerate(dist):
-#                 result_html += f"<tr><th>{obs_labels[i]}</th>"
-#                 for val in row:
-#                     result_html += f"<td>{val:.4f}</td>"
+#                 result_html += f"<tr><th>{labels[i]}</th>"
+#                 result_html += "".join(f"<td>{val:.4f}</td>" for val in row)
 #                 result_html += "</tr>"
-
-#             result_html += "</tbody></table></div>"
-
+#             result_html += "</table>"
 
 
 
 
 
-#         result_html += "</div>"
 #         return result_html
 
 #     except Exception as ex:
@@ -1072,6 +1112,8 @@
 
 
 
+
+# calculations/correlation.py
 
 import pandas as pd
 import numpy as np
@@ -1111,6 +1153,29 @@ def calculate(data, selected_columns, headers, additional_data={}):
 
         result_html = ""
 
+        # helper to create export-friendly hidden table
+        def build_export_table(title, header_row, body_rows):
+            """
+            title: string (not used inside table, kept for clarity)
+            header_row: list of header strings (first cell usually empty)
+            body_rows: list of lists (each row must have same length as header_row)
+            returns HTML table string with style display:none
+            """
+            html = "<table class='export-table' style='display:none;border-collapse:collapse;border:1px solid #ccc;'>"
+            # header
+            html += "<tr>"
+            for h in header_row:
+                html += f"<th>{h}</th>"
+            html += "</tr>"
+            # body
+            for r in body_rows:
+                html += "<tr>"
+                for cell in r:
+                    html += f"<td>{cell}</td>"
+                html += "</tr>"
+            html += "</table>"
+            return html
+
         # ----------------------------
         # BIVARIATE
         # ----------------------------
@@ -1124,48 +1189,83 @@ def calculate(data, selected_columns, headers, additional_data={}):
                 result_html += "<table border='1' cellpadding='6' style='border-collapse:collapse;'><tr><th></th>"
                 result_html += "".join(f"<th>{c}</th>" for c in cols)
                 result_html += "</tr>"
+                # For export table
+                export_header = [""] + cols
+                export_body = []
+
                 for rname in rows:
                     result_html += f"<tr><th>{rname}</th>"
+                    export_row = [rname]
                     for cname in cols:
                         pair = df[[rname, cname]].dropna()
                         n = int(pair.shape[0])
-                        if n >= 2 and pair[rname].nunique()>1 and pair[cname].nunique()>1:
+                        if n >= 2 and pair[rname].nunique() > 1 and pair[cname].nunique() > 1:
                             r, p = corr_func(pair[rname], pair[cname])
-                            result_html += f"<td style='text-align:center;'>r={r:.4f}<br>p={p:.4f}<br>N={n}</td>"
+                            cell_text = f"r={r:.4f}<br>p={p:.4f}<br>N={n}"
+                            export_cell = f"r={r:.4f}; p={p:.4f}; N={n}"
+                            result_html += f"<td style='text-align:center;'>{cell_text}</td>"
                         else:
-                            result_html += "<td>—</td>" if n==0 else f"<td>—<br>N={n}</td>"
+                            if n == 0:
+                                result_html += "<td>—</td>"
+                                export_cell = "—"
+                            else:
+                                result_html += f"<td style='text-align:center;'>—<br>N={n}</td>"
+                                export_cell = f"—; N={n}"
+                        export_row.append(export_cell)
+                    export_body.append(export_row)
                     result_html += "</tr>"
                 result_html += "</table>"
+                # append hidden export table
+                result_html += build_export_table(f"Correlation {label} Group1 vs Group2", export_header, export_body)
 
             else:
                 cols = list(names1)
-                if len(cols)<2:
+                if len(cols) < 2:
                     return "<div style='color:#d32f2f;'>Need at least two variables.</div>"
-                result_html += f"<p><strong>{label} Correlation Matrix</strong></p><table border='1' cellpadding='6' style='border-collapse:collapse;'><tr><th></th>"
-                result_html += "".join(f"<th>{c}</th>" for c in cols) + "</tr>"
-                for i,a in enumerate(cols):
+
+                result_html += f"<p><strong>{label}-Correlation</strong></p>"
+                result_html += "<table border='1' cellpadding='6' style='border-collapse:collapse;'><tr><th></th>"
+                result_html += "".join(f"<th>{c}</th>" for c in cols)
+                result_html += "</tr>"
+
+                # prepare export table
+                export_header = [""] + cols
+                export_body = []
+
+                for i, a in enumerate(cols):
                     result_html += f"<tr><th>{a}</th>"
-                    for j,b in enumerate(cols):
-                        if i==j:
+                    export_row = [a]
+                    for j, b in enumerate(cols):
+                        if i == j:
                             n_diag = int(df[a].dropna().shape[0])
                             result_html += f"<td>r=1.0000<br>p=0.0000<br>N={n_diag}</td>"
+                            export_cell = f"r=1.0000; p=0.0000; N={n_diag}"
                         else:
-                            pair = df[[a,b]].dropna()
+                            pair = df[[a, b]].dropna()
                             n = int(pair.shape[0])
-                            if n>=2 and pair[a].nunique()>1 and pair[b].nunique()>1:
-                                r,p = corr_func(pair[a], pair[b])
+                            if n >= 2 and pair[a].nunique() > 1 and pair[b].nunique() > 1:
+                                r, p = corr_func(pair[a], pair[b])
                                 result_html += f"<td>r={r:.4f}<br>p={p:.4f}<br>N={n}</td>"
+                                export_cell = f"r={r:.4f}; p={p:.4f}; N={n}"
                             else:
-                                result_html += "<td>—</td>" if n==0 else f"<td>—<br>N={n}</td>"
+                                if n == 0:
+                                    result_html += "<td>—</td>"
+                                    export_cell = "—"
+                                else:
+                                    result_html += f"<td>—<br>N={n}</td>"
+                                    export_cell = f"—; N={n}"
+                        export_row.append(export_cell)
+                    export_body.append(export_row)
                     result_html += "</tr>"
                 result_html += "</table>"
+                # append hidden export table
+                result_html += build_export_table(f"{label} Correlation Matrix", export_header, export_body)
+
 
         # ----------------------------
         # PARTIAL
         # ----------------------------
         elif method == 'partial':
-
-
             cols = (names1 + names2) if names2 else list(names1)
             # remove duplicates while preserving order
             seen = set()
@@ -1173,20 +1273,28 @@ def calculate(data, selected_columns, headers, additional_data={}):
             if len(cols) < 2:
                 return "<div style='font-family: Arial; color: #d32f2f;'>Need at least two target variables for partial correlation.</div>"
 
-            result_html += "<p><strong>Partial<br>Correlation-(controlling<br>for:{})</strong></p>".format(", ".join(ctrl_names))
-            # result_html += "<table<tr><th></th>"
+            result_html += "<p><strong>Partial-Correlation<br>(controlling-for:-{})</strong></p>".format(", ".join(ctrl_names))
+            result_html += "<table border='1' cellpadding='6' style='border-collapse:collapse;'><tr><th></th>"
             result_html += "".join(f"<th>{c}</th>" for c in cols)
             result_html += "</tr>"
 
+            # prepare export table
+            export_header = [""] + cols
+            export_body = []
+
             for i, a in enumerate(cols):
                 result_html += f"<tr><th>{a}</th>"
+                export_row = [a]
                 for j, b in enumerate(cols):
                     if i == j:
                         n_diag = int(df[a].dropna().shape[0])
                         if n_diag > 0:
                             result_html += f"<td>—<br>N={n_diag}</td>"
+                            export_cell = f"—; N={n_diag}"
                         else:
                             result_html += "<td>—</td>"
+                            export_cell = "—"
+                        export_row.append(export_cell)
                         continue
                     pair_plus_ctrl = df[[a, b] + ctrl_names].dropna()
                     n = int(pair_plus_ctrl.shape[0])
@@ -1194,45 +1302,62 @@ def calculate(data, selected_columns, headers, additional_data={}):
                         try:
                             r, p = _partial_correlation(pair_plus_ctrl[a], pair_plus_ctrl[b], pair_plus_ctrl[ctrl_names])
                             result_html += f"<td>r={r:.4f}<br>p={p:.4f}<br>N={n}</td>"
+                            export_cell = f"r={r:.4f}; p={p:.4f}; N={n}"
                         except Exception:
                             result_html += f"<td>Err<br>N={n}</td>"
+                            export_cell = f"Err; N={n}"
                     else:
-                        if n == 0:
-                            result_html += "<td>—</td>"
-                        else:
-                            result_html += f"<td>—<br>N={n}</td>"
+                        result_html += "<td>—</td>" if n == 0 else f"<td>—<br>N={n}</td>"
+                        export_cell = "—" if n == 0 else f"—; N={n}"
+                    export_row.append(export_cell)
+                export_body.append(export_row)
                 result_html += "</tr>"
             result_html += "</table>"
-            
+            # append hidden export table
+            result_html += build_export_table("Partial Correlation (export)", export_header, export_body)
 
-        # ----------------------------
-        # DISTANCES
-        # ----------------------------
+    # ----------------------------
+    # DISTANCES
+    # ----------------------------
         elif method == 'distances':
             cols = names1 + names2
             if not cols:
                 return "<div style='color:#d32f2f;'>Select variables for distance calculation.</div>"
             arr_df = df[cols].apply(pd.to_numeric, errors='coerce').dropna()
-            if arr_df.shape[0]<1:
+            if arr_df.shape[0] < 1:
                 return "<div style='color:#d32f2f;'>Insufficient complete observations.</div>"
 
             arr = arr_df.to_numpy()
-            if submethod=="varwise":
+            if submethod == "varwise":
                 dist = pairwise_distances(arr.T, metric="euclidean")
                 labels = cols
                 title = "Variable-wise Distances"
             else:
                 dist = pairwise_distances(arr, metric="euclidean")
-                labels = [f"Obs {i+1}" for i in arr_df.index]
+                # labels = [f"Obs {i+1}" for i in arr_df.index]
+                labels = [str(i+1) for i in range(len(arr_df))]
                 title = "Case-wise Distances"
 
-            result_html += f"<p><strong>{title}</strong></p><table border='1' cellpadding='6' style='border-collapse:collapse;'><tr><th></th>"
+            result_html += f"<p><strong>{title}</strong></p>"
+            result_html += "<table border='1' cellpadding='6' style='border-collapse:collapse;'><tr><th></th>"
             result_html += "".join(f"<th>{c}</th>" for c in labels) + "</tr>"
-            for i,row in enumerate(dist):
+
+            # prepare export table
+            export_header = [""] + labels
+            export_body = []
+
+            for i, row in enumerate(dist):
                 result_html += f"<tr><th>{labels[i]}</th>"
-                result_html += "".join(f"<td>{val:.4f}</td>" for val in row)
+                export_row = [labels[i]]
+                for val in row:
+                    result_html += f"<td>{val:.4f}</td>"
+                    export_row.append(f"{val:.4f}")
+                export_body.append(export_row)
                 result_html += "</tr>"
             result_html += "</table>"
+            # append hidden export table (pure numeric)
+            result_html += build_export_table(f"{title} (export)", export_header, export_body)
+
 
         return result_html
 
