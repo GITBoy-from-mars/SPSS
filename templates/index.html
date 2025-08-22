@@ -1,3 +1,4 @@
+<!-- 34 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -69,6 +70,7 @@
     }
 
 
+
   </style>
 </head>
 <body>
@@ -95,19 +97,32 @@
   </div>
 </div>
 
-  <!-- <div id="hot"></div>
-  <div id="result"></div> -->
-
   <div id="modal">
     <iframe id="popup-frame" src=""></iframe>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/handsontable@15.3.0/dist/handsontable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/hyperformula@1.2.0/dist/hyperformula.full.js"></script> -->
   <script>
     let resultsHistory = [];
-    // Complete SPSS Menu Configuration
-    const menuConfig = [
+
+    // Small utility: clean and dedupe history before exporting (removes empty outputs and exact duplicates)
+    function cleanHistoryForExport(history) {
+      const cleaned = [];
+      const seen = new Set();
+      for (const item of history) {
+        const outHtml = (item.output_html || '').toString().trim().replace(/\s+/g, ' ');
+        if (!outHtml) continue; // skip blank outputs
+        const key = outHtml + '||' + JSON.stringify(item.grid_data || []);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        cleaned.push(item);
+      }
+      return cleaned;
+    }
+
+     const menuConfig = [
       {
         label: "File",
         items: [
@@ -146,7 +161,7 @@
           //   {text: "One-Way ANOVA", action: ()=>showCalculationPopup('anova')}
           // ]},
           {text: "Correlation", submenu: [
-            {text: "Bivariate/Partial/Distances", action: ()=>showCalculationPopup('correlation')},
+            {text: "Bivariate or Partial", action: ()=>showCalculationPopup('correlation')},
             // {text: "Partial", action: ()=>showCalculationPopup('partial_correlation')},
             // {text: "Distance", action: ()=>showCalculationPopup('distances_correlation')}
           ]},
@@ -171,17 +186,21 @@
       // }
     ];
 
+
+
     // Handsontable initializatio n
     let hot;
-    function createGridEmpty(rows=10, cols=20) {
+    function createGridEmpty(rows=2000, cols=100) {
       hot = new Handsontable(document.getElementById('hot'), {
         data: Array(rows).fill().map(() => Array(cols).fill("")),
-        minRows: -1, minCols: 1,
+        minRows: 1, minCols: 1,
         rowHeaders: true,
         colHeaders: true,
         contextMenu: true,
         manualRowResize: true,
         manualColumnResize: true,
+        stretchH: 'all',
+        // height: 600,
         licenseKey: 'non-commercial-and-evaluation',
         copyPaste: true,
       });
@@ -233,14 +252,6 @@
     }
     buildMenus(menuConfig);
 
-    // Show calculation popup from calculations folder
-    // function showCalculationPopup(calculationType) {
-    //   const modal = document.getElementById('modal');
-    //   const iframe = document.getElementById('popup-frame');
-    //   iframe.src = `calculations/${calculationType}.html`;
-    //   modal.style.display = 'flex';
-    // }
-
     // Show calculation popup with column data
     function showCalculationPopup(calculationType) {
       const modal = document.getElementById('modal');
@@ -265,7 +276,7 @@
 
         // Get data from grid
         const gridData = [];
-        for(let r = 1; r < hot.countRows(); r++) {
+        for(let r = 0; r < hot.countRows(); r++) {
           const row = [];
           for(let c = 0; c < hot.countCols(); c++) {
             row.push(hot.getDataAtCell(r, c));
@@ -330,6 +341,7 @@
       }
     };
 
+    // File import: improved to select first sheet correctly and preserve/adjust grid size
     document.getElementById('fileInput').onchange = (e) => {
       const file = e.target.files[0];
       if(!file) return;
@@ -337,10 +349,34 @@
       reader.onload = function(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, {type: "array"});
-        const wsname = workbook.SheetNames;
-        const ws = workbook.Sheets[wsname];
+        const firstSheetName = workbook.SheetNames && workbook.SheetNames[0];
+        if (!firstSheetName) return;
+        const ws = workbook.Sheets[firstSheetName];
         const sheetData = XLSX.utils.sheet_to_json(ws, {header:1});
-        hot.loadData(sheetData);
+
+        // Determine desired grid size: keep at least current hot column count to avoid shrinking
+        const currentCols = hot.countCols();
+        const fileCols = (sheetData && sheetData[0]) ? sheetData[0].length : 0;
+        const desiredCols = Math.max(currentCols, fileCols);
+
+        // Pad each row so Handsontable keeps consistent column length when file has fewer cols
+        const padded = (sheetData || []).map(row => {
+          const r = Array.isArray(row) ? row.slice() : [];
+          while (r.length < desiredCols) r.push('');
+          return r;
+        });
+
+        // If file has more columns than current grid, expand columns configuration
+        if (desiredCols > currentCols) {
+          hot.updateSettings({
+            data: padded,
+            colHeaders: true,
+            columns: Array(desiredCols).fill({})
+          });
+        } else {
+          // Keep existing number of columns but load the file data (padded)
+          hot.loadData(padded);
+        }
       };
       reader.readAsArrayBuffer(file);
     };
@@ -365,10 +401,12 @@
         return;
       }
       try {
+        // Clean/dedupe before sending to server to avoid blank/duplicate entries
+        const historyToSend = cleanHistoryForExport(resultsHistory);
         const resp = await fetch('/api/export', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ history: resultsHistory })
+          body: JSON.stringify({ history: historyToSend })
         });
         if (!resp.ok) throw new Error("Export failed");
           const blob = await resp.blob();
@@ -394,6 +432,45 @@
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
+
+
+
+    // function renderCorrelationMatrix(rawHtml) {
+    //   const container = document.getElementById("result");
+    //   if (!rawHtml || !rawHtml.trim()) {
+    //     container.innerHTML = "<p>No correlation matrix data.</p>";
+    //     return;
+    //   }
+
+    //   // If server returned HTML markup, inject it directly so tables and formatting remain intact.
+    //   if (/<\/?[a-z][\s\S]*>/i.test(rawHtml)) {
+    //     container.innerHTML = rawHtml;
+    //   } else {
+    //     // fallback: show raw text in preformatted block
+    //     container.innerHTML = '<h4>Correlation Matrix</h4><pre style="font-family:monospace;white-space:pre-wrap;">' + escapeHtml(rawHtml) + '</pre>';
+    //   }
+
+    //   // Save to resultsHistory for export (avoid duplicating identical last entry)
+    //   try {
+    //     const last = resultsHistory.length ? resultsHistory[resultsHistory.length - 1] : null;
+    //     if (!last || last.type !== 'correlation' || last.output_html !== rawHtml) {
+    //       resultsHistory.push({
+    //         type: 'correlation',
+    //         output_html: rawHtml,
+    //         grid_data: (window.hot && window.hot.getData) ? window.hot.getData() : null,
+    //         headers: (window.hot && window.hot.getColHeader) ? window.hot.getColHeader() : null
+    //       });
+    //     }
+    //   } catch (e) {
+    //     console.warn('Could not save correlation to history:', e);
+    //   }
+    // }
+
+
+
+
+
+
     function renderCorrelationMatrix(rawHtml) {
       const container = document.getElementById("result");
       if (!rawHtml || !rawHtml.trim()) {
@@ -401,21 +478,75 @@
         return;
       }
 
-      // If server returned HTML markup, inject it directly so tables and formatting remain intact.
-      if (/<\/?[a-z][\s\S]*>/i.test(rawHtml)) {
-        container.innerHTML = rawHtml;
-      } else {
-        // fallback: show raw text in preformatted block
-        container.innerHTML = '<h4>Correlation Matrix</h4><pre style="font-family:monospace;white-space:pre-wrap;">' + escapeHtml(rawHtml) + '</pre>';
+      // For debugging: show original returned HTML in console
+      console.groupCollapsed('Correlation HTML (raw)');
+      console.log(rawHtml);
+      console.groupEnd();
+
+      // Parse the returned HTML
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(rawHtml, 'text/html');
+      // const cleanedHtml = tempDoc.body.innerHTML.trim();
+
+      // detection regex: looks for correlation-like content or any numeric values (r=, p=, N=, or plain numbers)
+      const numericRegex = /(r\s*=\s*-?\d+(\.\d+)?|p\s*=\s*0?\.?\d+|N\s*=\s*\d+|\b\d+\.\d+\b|\b\d{1,3}\b)/i;
+
+      // Helper: table considered meaningful if any TH/TD contains numericRegex
+      function tableHasNumericContent(table) {
+        const cells = Array.from(table.querySelectorAll('th, td'));
+        for (const cell of cells) {
+          const txt = (cell.textContent || '').replace(/\u00A0/g, ' ').trim(); // replace &nbsp;
+          if (!txt) continue;
+          if (numericRegex.test(txt)) return true;
+        }
+        return false;
       }
+
+      // Keep tables that have numeric/correlation content
+      const tables = Array.from(doc.querySelectorAll('table'));
+      if (tables.length > 0) {
+        tables.forEach(t => {
+          if (!tableHasNumericContent(t)) {
+            t.remove();
+          }
+        });
+
+        // If cleaning removed everything, fallback: keep the last original table
+        if (doc.querySelectorAll('table').length === 0) {
+          // re-parse original to pick last table
+          const originalDoc = parser.parseFromString(rawHtml, 'text/html');
+          const origTables = Array.from(originalDoc.querySelectorAll('table'));
+          if (origTables.length) {
+            // append last table into body
+            doc.body.innerHTML = ''; // clear
+            doc.body.appendChild(origTables[origTables.length - 1].cloneNode(true));
+          }
+        }
+      }
+
+      // Serialize cleaned HTML
+      const cleanedHtml = doc.body.innerHTML.trim();
+
+      // Debugging: show cleaned html
+      console.groupCollapsed('Correlation HTML (cleaned)');
+      console.log(cleanedHtml);
+      console.groupEnd();
+
+      if (!cleanedHtml) {
+        container.innerHTML = "<p>No correlation matrix data.</p>";
+        return;
+      }
+
+      // Inject cleaned HTML into result container
+      container.innerHTML = cleanedHtml;
 
       // Save to resultsHistory for export (avoid duplicating identical last entry)
       try {
         const last = resultsHistory.length ? resultsHistory[resultsHistory.length - 1] : null;
-        if (!last || last.type !== 'correlation' || last.output_html !== rawHtml) {
+        if (!last || last.type !== 'correlation' || last.output_html !== cleanedHtml) {
           resultsHistory.push({
             type: 'correlation',
-            output_html: rawHtml,
+            output_html: cleanedHtml,
             grid_data: (window.hot && window.hot.getData) ? window.hot.getData() : null,
             headers: (window.hot && window.hot.getColHeader) ? window.hot.getColHeader() : null
           });
@@ -424,6 +555,8 @@
         console.warn('Could not save correlation to history:', e);
       }
     }
+
+
   
 
   // Generic render function – calls correlation matrix renderer if type is correlation
@@ -431,14 +564,14 @@
     if (calcType.toLowerCase() === 'correlation') {
       renderCorrelationMatrix(rawText);
     } else {
-      const container = document.getElementById("result");
+      const container = document.getElementById('result');
       if (!rawText || !rawText.trim()) {
         container.innerHTML = "<p>No results available.</p>";
         return;
       }
       const temp = document.createElement('div');
       temp.innerHTML = rawText.trim();
-      let html = `<h4>📊 ${calcType.toUpperCase()} Results</h4>`;
+      let html = `<h4> ${calcType.toUpperCase()} Results</h4>`;
       Array.from(temp.children).forEach(div => {
         const lines = div.innerText.trim().split('\n').filter(l => l);
         html += `<div style="margin-bottom:20px; padding-left:10px; border-left:4px solid #1976d; font-family: monospace; font-size:14px;">`;
@@ -547,6 +680,11 @@
 
   })();
   </script>
+
+
+
+
+
 
 </body>
 </html>
