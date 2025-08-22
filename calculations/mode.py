@@ -90,7 +90,7 @@ def calculate(data, selected_columns, headers, additional_data={}):
                     <strong>Frequency:</strong> {result_data['frequency']} ({result_data['percentage']}%)<br>
                     <strong>Number of Observations:</strong> {result_data['valid_cases']}<br>
                     <strong>Unique Samples:</strong> {result_data['unique_values']}<br>
-                    {f"<br><strong>Missing:</strong> {result_data['missing_cases']}" if result_data['missing_cases'] > 0 else ""}
+                   
                 </div>
                 """
         
@@ -101,3 +101,4 @@ def calculate(data, selected_columns, headers, additional_data={}):
         return f"<div style='color: red; font-family: Arial;'>Error calculating mode: {str(e)}</div>"
 
 # <strong>Total Cases:</strong> {result_data['total_cases']}
+#  {f"<br><strong>Missing:</strong> {result_data['missing_cases']}" if result_data['missing_cases'] > 0 else ""}

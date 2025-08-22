@@ -59,7 +59,7 @@ def calculate(data, selected_columns, headers, additional_data={}):
                     <strong>Columns {col}</strong><br>
                     <strong>Median:</strong> {stats['median']}<br>
                     <strong>Number of Observations:</strong> {stats['count']}<br>
-                    {f"<br><strong>Missing:</strong> {stats['missing_cases']}" if stats['missing_cases'] > 0 else ""}
+                   
                 </div>
                 """
         
@@ -72,3 +72,4 @@ def calculate(data, selected_columns, headers, additional_data={}):
     
     
 # <strong>Total Cases:</strong> {stats['total_cases']}
+#  {f"<br><strong>Missing:</strong> {stats['missing_cases']}" if stats['missing_cases'] > 0 else ""}
