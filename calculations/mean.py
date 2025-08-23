@@ -223,23 +223,6 @@ def calculate(data, selected_columns, headers, additional_data={}):
                 </div>
                 """
 
-        # ---------------- hidden export table (append ONCE) ----------------
-        export_rows = []
-        for var, s in results.items():
-            if 'error' in s:
-                continue
-            mean_txt = "—" if s.get('mean') is None else f"{float(s['mean']):.4f}"
-            n_valid  = int(s.get('count', 0))
-            export_rows.append((var, mean_txt, str(n_valid)))
-
-        if export_rows:
-            result_html += (
-                "<table class='export-table' style='display:none' data-title='Mean'>"
-                "<thead><tr><th>Variable</th><th>Mean</th><th>N</th></tr></thead><tbody>"
-                + "".join(f"<tr><td>{v}</td><td>{m}</td><td>{n}</td></tr>"
-                        for v, m, n in export_rows)
-                + "</tbody></table>"
-            )
 
         result_html += "</div>"
         return result_html

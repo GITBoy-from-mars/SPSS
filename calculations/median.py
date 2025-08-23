@@ -159,29 +159,12 @@ def calculate(data, selected_columns, headers, additional_data={}):
                 result_html += (
                     "<table class='export-table' style='display:none'>"
                     "<thead><tr><th>Variable</th><th>Median</th><th>N</th><th>Missing</th></tr></thead><tbody>"
-                    + "".join(f"<tr><td>{v}</td><td>{m}</td><td>{n}</td></tr>"
-                            for v, m, n in export_rows)
+                    + "".join(f"<tr><td>{v}</td><td>{m}</td><td>{n}</td><td>{ms}</td></tr>"
+                            for v, m, n, ms in export_rows)
                     + "</tbody></table>"
                 )
 
 
-        export_rows = []
-        for col, stats in results.items():
-            if 'error' in stats:
-                continue
-            med = stats.get('median')
-            n   = int(stats.get('count', 0))
-            med_txt = "—" if med is None else f"{float(med):.4f}"
-            export_rows.append((col, med_txt, str(n)))
-
-        if export_rows:
-            result_html += (
-                "<table class='export-table' style='display:none' data-title='Median'>"
-                "<thead><tr><th>Variable</th><th>Median</th><th>N</th></tr></thead><tbody>"
-                + "".join(f"<tr><td>{v}</td><td>{m}</td><td>{n}</td></tr>"
-                        for v, m, n in export_rows)
-                + "</tbody></table>"
-            )
         # close wrapper
         result_html += "</div>"
 
