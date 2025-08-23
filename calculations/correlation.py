@@ -1216,6 +1216,8 @@ def calculate(data, selected_columns, headers, additional_data={}):
                     result_html += "</tr>"
                 result_html += "</table>"
                 # append hidden export table
+
+
                 result_html += build_export_table(f"Correlation {label} Group1 vs Group2", export_header, export_body)
 
             else:

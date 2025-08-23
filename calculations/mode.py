@@ -93,6 +93,28 @@ def calculate(data, selected_columns, headers, additional_data={}):
                    
                 </div>
                 """
+
+            export_rows = []
+            for col, rd in results.items():
+                if 'error' in rd:
+                    continue
+                mode_txt = rd.get('mode', '—')       # e.g., "Multiple modes: 3, 1"
+                freq     = int(rd.get('frequency', 0))
+                pct      = rd.get('percentage', 0)
+                valid_n  = int(rd.get('valid_cases', rd.get('count', 0)))
+                unique   = int(rd.get('unique_values', 0))
+                export_rows.append((col, mode_txt, str(freq), f"{pct}%", str(valid_n), str(unique)))
+
+            if export_rows:
+                result_html += (
+                    "<table class='export-table' style='display:none' data-title='Mode'>"
+                    "<thead><tr>"
+                    "<th>Variable</th><th>Mode</th><th>Frequency</th><th>Frequency (%)</th><th>Valid N</th><th>Unique</th>"
+                    "</tr></thead><tbody>"
+                    + "".join("<tr>" + "".join(f"<td>{c}</td>" for c in row) + "</tr>" for row in export_rows)
+                    + "</tbody></table>"
+                )
+
         
         result_html += "</div>"
         return result_html

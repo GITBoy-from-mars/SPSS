@@ -103,7 +103,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/handsontable@15.3.0/dist/handsontable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-  <!-- <script src="https://cdn.jsdelivr.net/npm/hyperformula@1.2.0/dist/hyperformula.full.js"></script> -->
+  <script src="https://cdn.jsdelivr.net/npm/hyperformula@1.2.0/dist/hyperformula.full.js"></script>
   <script>
     let resultsHistory = [];
 
@@ -186,6 +186,8 @@
       // }
     ];
 
+    const hf = HyperFormula.buildEmpty({ licenseKey: 'gpl-v3' });
+  
 
 
     // Handsontable initializatio n
@@ -203,6 +205,8 @@
         // height: 600,
         licenseKey: 'non-commercial-and-evaluation',
         copyPaste: true,
+        fillHandle: { autoInsertRow: true },
+         formulas: { engine: hf },
       });
     }
     createGridEmpty();
@@ -611,7 +615,8 @@
     function parseRowToCells(row) {
       let cells = row.split('\t');
       if (cells.length === 1) {
-        // no tabs found — try comma separation (CSV-like)
+        if (/^\s*=/.test(row)) return [row];
+          // no tabs found — try comma separation (CSV-like)
         cells = row.split(',');
       }
       return cells;

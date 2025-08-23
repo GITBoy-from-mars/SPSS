@@ -316,6 +316,7 @@ def _apply_table_style(ws, start_row, start_col, end_row, end_col):
     thin = Side(border_style="thin", color="000000")
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
     for r in range(start_row, end_row + 1):
+    
         for c in range(start_col, end_col + 1):
             cell = ws.cell(row=r, column=c)
             cell.border = border
@@ -435,6 +436,44 @@ def _parse_generic_block_text_to_kv_blocks(text):
 
 
 
+def _descriptive_title(entry_type, idx, soup):
+    # 1) prefer explicit title on export table
+    t = soup.select_one('table.export-table')
+    if t:
+        for attr in ('data-title', 'aria-label', 'title'):
+            v = (t.get(attr) or '').strip()
+            if v:
+                return f"{v} (analysis {idx+1})"
+    # 2) visible headings
+    for sel in ('h1','h2','h3','h4','.matrix-title','strong','b'):
+        el = soup.select_one(sel)
+        if el and el.get_text(strip=True):
+            return f"{el.get_text(strip=True)} (analysis {idx+1})"
+    # 3) heuristics for correlation variants
+    if entry_type.lower() == 'correlation':
+        txt = soup.get_text(separator=' ').lower()
+        if 'partial' in txt or 'controlling-for' in txt:
+            raw = soup.get_text(separator=' ')
+            m = re.search(r'Partial[- ]Correlation\s*\(([^)]+)\)', raw, flags=re.I)
+            extra = f" ({m.group(1).strip()})" if m else ''
+            return f"Partial Correlation{extra} (analysis {idx+1})"
+        if 'spearman' in txt:
+            return f"Spearman Correlation (analysis {idx+1})"
+        if 'kendall' in txt:
+            return f"Kendall Correlation (analysis {idx+1})"
+        if 'distance' in txt:
+            if 'case-wise' in txt or 'casewise' in txt:
+                return f"Distance Correlation (case-wise) (analysis {idx+1})"
+            if 'variable-wise' in txt or 'variablewise' in txt:
+                return f"Distance Correlation (variable-wise) (analysis {idx+1})"
+            return f"Distance Correlation (analysis {idx+1})"
+    return f"{entry_type.capitalize()} (analysis {idx+1})"
+
+
+
+
+
+
 @app.route('/api/export', methods=['POST'])
 def api_export():
     """
@@ -469,12 +508,32 @@ def api_export():
 
         for idx, item in enumerate(history):
             entry_type = str(item.get('type', 'analysis')).strip() or f"analysis_{idx+1}"
-            title = f"{entry_type.capitalize()} (analysis {idx+1})"
+            # title = f"{entry_type.capitalize()} (analysis {idx+1})"
             html = item.get('output_html', '') or ''
             soup = BeautifulSoup(str(html), 'html.parser')
+            title = _descriptive_title(entry_type, idx, soup)
 
             # Try to find tables first
-            tables = soup.find_all('table')
+            # tables = soup.find_all('table')
+
+            exp_tables = soup.select('table.export-table')
+            if exp_tables:
+                tables = exp_tables
+            else:
+                tables = []
+                # candidates = soup.find_all('table')
+                # tables = [t for t in candidates if not is_hidden(t) and not is_grid(t)]
+                # if not tables:
+                #     tables = candidates
+                for table in soup.find_all('table'):
+                    style = (table.get('style') or '').lower()
+                    classes = table.get('class', []) or []
+                    # skip hidden tables
+                    if 'export-table' in classes or 'display:none' in style:
+                        continue
+                    tables.append(table)
+
+
             if tables:
                 # Use only first table per history item to keep structure consistent.
                 # If multiple tables exist, append them sequentially.
@@ -498,7 +557,8 @@ def api_export():
                             tds = tr.find_all('td')
                             row_cells = [td.get_text(separator='\n').strip() for td in tds]
                         # convert multi-line cell text into single-line with ' ; ' separator
-                        row_cells = [' ; '.join([ln.strip() for ln in rc.splitlines() if ln.strip()]) for rc in row_cells]
+                        # row_cells = [' ; '.join([ln.strip() for ln in rc.splitlines() if ln.strip()]) for rc in row_cells]
+                        row_cells = [re.sub(r'\n+', '\n', rc).strip() for rc in row_cells]
                         if any(rc != '' for rc in row_cells):
                             rows.append(row_cells)
 
@@ -645,296 +705,6 @@ def api_export():
 
     except Exception as ex:
         return jsonify({"error": f"Export failed: {str(ex)}"}), 500
-
-
-
-
-
-
-
-
-
-# 33
-
-
-# @app.route('/api/export', methods=['POST'])
-# def api_export():
-#     """
-#     Universal exporter: accepts JSON { history: [ { type, output_html, grid_data, headers }, ... ] }
-#     Produces a single workbook "Analysis Results" with each history entry appended (5 blank rows between).
-#     Robust: catches per-item errors and continues; writes error notes into workbook rather than failing.
-#     """
-#     try:
-#         payload = request.get_json(force=True) or {}
-#         history = payload.get('history', []) if payload else []
-
-#         # keep only items with any non-empty content (html/text/grid)
-#         cleaned = []
-#         for h in history:
-#             if not h:
-#                 continue
-#             out_html = (h.get('output_html') or "").strip()
-#             has_grid = bool(h.get('grid_data'))
-#             if out_html or has_grid:
-#                 cleaned.append(h)
-#         history = cleaned
-
-#         if not history:
-#             return jsonify({"error": "No results to export"}), 400
-
-#         import hashlib
-#         wb = Workbook()
-#         ws = wb.active
-#         ws.title = "Analysis Results"
-
-#         # Styles
-#         title_font = Font(bold=True, size=12)
-#         header_fill      = PatternFill(start_color='FFE6E6E6', end_color='FFE6E6E6', fill_type='solid')
-#         left_header_fill = PatternFill(start_color='FFEFEFEF', end_color='FFEFEFEF', fill_type='solid')
-#         row_fill_odd     = PatternFill(start_color='FFFFFFFF', end_color='FFFFFFFF', fill_type='solid')
-#         row_fill_even    = PatternFill(start_color='FFFBFBFB', end_color='FFFBFBFB', fill_type='solid')
-#         # header_fill = PatternFill(start_color='E6E6E6', end_color='E6E6E06', fill_type='solid')
-#         # left_header_fill = PatternFill(start_color='EFEFEF', end_color='EFEFEF', fill_type='solid')
-#         header_font = Font(bold=True)
-#         left_header_font = Font(bold=True)
-#         left_align = Alignment(horizontal='left', vertical='top', wrap_text=True)
-#         center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
-#         # row_fill_odd = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
-#         # row_fill_even = PatternFill(start_color='FBFBFB', end_color='FBFBFB', fill_type='solid')
-
-#         current_row = 1
-#         seen_hashes = set()
-
-#         def html_to_rows_generic(table):
-#             """Return normalized rows for a BeautifulSoup table element."""
-#             rows = []
-#             for tr in table.find_all('tr'):
-#                 # prefer th for header row
-#                 ths = tr.find_all('th')
-#                 if ths:
-#                     cells = [th.get_text(separator='\n').strip() for th in ths]
-#                 else:
-#                     tds = tr.find_all('td')
-#                     cells = [td.get_text(separator='\n').strip() for td in tds]
-#                 # join multi-line cell contents with ' ; ' to keep it Excel-friendly
-#                 cells = [' ; '.join([ln.strip() for ln in c.splitlines() if ln.strip()]) for c in cells]
-#                 if any(c != '' for c in cells):
-#                     rows.append(cells)
-#             return rows
-
-#         for idx, item in enumerate(history):
-#             try:
-#                 item_type = str(item.get('type', f"analysis_{idx+1}"))
-#                 title = f"{item_type.capitalize()} (analysis {idx+1})"
-
-#                 out_html = (item.get('output_html') or "").strip()
-#                 grid = item.get('grid_data')
-#                 headers = item.get('headers') or []
-
-#                 # Skip duplicates by hash of output_html + grid data
-#                 key_material = out_html if out_html else repr(grid)
-#                 key_hash = hashlib.sha1(key_material.encode('utf-8')).hexdigest()
-#                 if key_hash in seen_hashes:
-#                     # skip duplicate content
-#                     continue
-#                 seen_hashes.add(key_hash)
-
-#                 wrote = False
-
-#                 # 1) If grid snapshot provided -> write it as a small table
-#                 if grid and isinstance(grid, list) and any(len(r) for r in grid):
-#                     ws.cell(row=current_row, column=1, value=title).font = title_font
-#                     ws.cell(row=current_row, column=1).alignment = left_align
-#                     current_row += 1
-#                     # optionally write headers if provided
-#                     if headers:
-#                         for cidx, h in enumerate(headers, start=1):
-#                             cell = ws.cell(row=current_row, column=cidx, value=h)
-#                             cell.font = header_font
-#                             cell.fill = header_fill
-#                             cell.alignment = center_align
-#                         current_row += 1
-#                     # write rows
-#                     for r in grid:
-#                         for cidx, val in enumerate(r, start=1):
-#                             ws.cell(row=current_row, column=cidx, value=(val if val != '' else None))
-#                         current_row += 1
-#                     _apply_table_style(ws, current_row - len(grid) - (1 if headers else 0), 1, current_row - 1, max(1, len(grid[0]) if grid else 1))
-#                     _excel_autofit_ws(ws)
-#                     wrote = True
-
-#                 # 2) If HTML present -> parse and export tables or fallback to parsed text blocks
-#                 if out_html:
-#                     soup = BeautifulSoup(out_html, 'html.parser')
-#                     tables = soup.find_all('table')
-
-#                     if tables:
-#                         # write each table sequentially under the same title
-#                         ws.cell(row=current_row, column=1, value=title).font = title_font
-#                         ws.cell(row=current_row, column=1).alignment = left_align
-#                         current_row += 1
-
-#                         for t_i, table in enumerate(tables):
-#                             rows = html_to_rows_generic(table)
-#                             if not rows:
-#                                 continue
-#                             maxc = max(len(r) for r in rows)
-#                             norm_rows = [r + [''] * (maxc - len(r)) for r in rows]
-
-#                             # decide header row: if first row has non-empty cells treat as header
-#                             header = norm_rows[0]
-#                             data_rows = norm_rows[1:] if len(norm_rows) > 1 else []
-
-#                             # attempt to detect labeled matrix (first column is row labels and first header cell blank)
-#                             labeled_matrix = False
-#                             if header and header[0] == '':
-#                                 # if rows have first cell non-empty, it's a labeled matrix (like correlation)
-#                                 if any(dr and dr[0].strip() != '' for dr in data_rows):
-#                                     labeled_matrix = True
-
-#                             # write header(s)
-#                             if labeled_matrix:
-#                                 # write top-left empty then column headers from header[1:]
-#                                 ws.cell(row=current_row, column=1, value='')
-#                                 for cidx, h in enumerate(header[1:], start=2):
-#                                     cell = ws.cell(row=current_row, column=cidx, value=h)
-#                                     cell.font = header_font
-#                                     cell.fill = header_fill
-#                                     cell.alignment = center_align
-#                             else:
-#                                 for cidx, h in enumerate(header, start=1):
-#                                     cell = ws.cell(row=current_row, column=cidx, value=h)
-#                                     cell.font = header_font
-#                                     cell.fill = header_fill
-#                                     cell.alignment = center_align
-
-#                             current_row += 1
-
-#                             # write data rows
-#                             for r_i, dr in enumerate(data_rows):
-#                                 fill = row_fill_even if (r_i % 2 == 1) else row_fill_odd
-#                                 if labeled_matrix:
-#                                     # first column is row label
-#                                     ws.cell(row=current_row, column=1, value=dr[0]).font = left_header_font
-#                                     ws.cell(row=current_row, column=1).fill = left_header_fill
-#                                     ws.cell(row=current_row, column=1).alignment = left_align
-#                                     for cidx, val in enumerate(dr[1:], start=2):
-#                                         cell = ws.cell(row=current_row, column=cidx, value=(val if val != '' else None))
-#                                         cell.alignment = left_align
-#                                         cell.fill = fill
-#                                 else:
-#                                     for cidx, val in enumerate(dr, start=1):
-#                                         cell = ws.cell(row=current_row, column=cidx, value=(val if val != '' else None))
-#                                         if cidx == 1:
-#                                             cell.fill = left_header_fill
-#                                             cell.font = left_header_font
-#                                         else:
-#                                             cell.fill = fill
-#                                         cell.alignment = left_align
-#                                 current_row += 1
-
-#                             _apply_table_style(ws, current_row - len(data_rows) - 1, 1, current_row - 1, maxc)
-#                             _excel_autofit_ws(ws)
-#                             current_row += 1
-#                         wrote = True
-
-#                     else:
-#                         # No table: try to parse as mean/median/mode blocks, else generic kv blocks
-#                         text = soup.get_text(separator="\n").strip()
-#                         low = text.lower()
-#                         if 'mean' in low and 'columns' in low:
-#                             parsed = _parse_mean_text_to_table(text)
-#                             if parsed:
-#                                 ws.cell(row=current_row, column=1, value=f"{title} - Mean").font = title_font
-#                                 ws.cell(row=current_row, column=1).alignment = left_align
-#                                 current_row += 1
-#                                 hdrs = ['Variable', 'Mean', 'N', 'Missing']
-#                                 for cidx, h in enumerate(hdrs, start=1):
-#                                     cell = ws.cell(row=current_row, column=cidx, value=h)
-#                                     cell.font = header_font
-#                                     cell.fill = header_fill
-#                                     cell.alignment = center_align
-#                                 current_row += 1
-#                                 for pr in parsed:
-#                                     ws.cell(row=current_row, column=1, value=pr.get('Variable'))
-#                                     ws.cell(row=current_row, column=2, value=(round(pr['Mean'],4) if pr.get('Mean') is not None else None))
-#                                     ws.cell(row=current_row, column=3, value=pr.get('N'))
-#                                     ws.cell(row=current_row, column=4, value=pr.get('Missing'))
-#                                     current_row += 1
-#                                 _apply_table_style(ws, current_row - len(parsed) - 1, 1, current_row - 1, 4)
-#                                 _excel_autofit_ws(ws)
-#                                 wrote = True
-
-#                         if not wrote:
-#                             # generic kv-block parsing
-#                             blocks = _parse_generic_block_text_to_kv_blocks(text)
-#                             if blocks:
-#                                 ws.cell(row=current_row, column=1, value=title).font = title_font
-#                                 ws.cell(row=current_row, column=1).alignment = left_align
-#                                 current_row += 1
-#                                 start_row_block = current_row
-#                                 for label, lines in blocks:
-#                                     if label:
-#                                         cell = ws.cell(row=current_row, column=1, value=label)
-#                                         cell.font = header_font
-#                                         cell.fill = header_fill
-#                                         cell.alignment = left_align
-#                                         current_row += 1
-#                                     for ln in lines:
-#                                         if ':' in ln:
-#                                             left, right = ln.split(':', 1)
-#                                             ws.cell(row=current_row, column=1, value=left.strip())
-#                                             ws.cell(row=current_row, column=2, value=right.strip())
-#                                         else:
-#                                             ws.cell(row=current_row, column=1, value=ln)
-#                                         current_row += 1
-#                                     current_row += 1
-#                                 _apply_table_style(ws, start_row_block, 1, current_row - 1, 2)
-#                                 _excel_autofit_ws(ws)
-#                                 wrote = True
-
-#                         if not wrote:
-#                             # fallback: write whole text into a single cell
-#                             ws.cell(row=current_row, column=1, value=title).font = title_font
-#                             current_row += 1
-#                             ws.cell(row=current_row, column=1, value=text)
-#                             ws.cell(row=current_row, column=1).alignment = left_align
-#                             current_row += 1
-#                             _excel_autofit_ws(ws)
-#                             wrote = True
-
-#                 # If nothing wrote (shouldn't happen) write a small note
-#                 if not wrote:
-#                     ws.cell(row=current_row, column=1, value=f"{title} - (no parsable output)")
-#                     current_row += 1
-
-#             except Exception as e_item:
-#                 # per-item error: write an error note and continue
-#                 ws.cell(row=current_row, column=1, value=f"{item_type} (analysis {idx+1}) - Export error")
-#                 ws.cell(row=current_row, column=2, value=str(e_item))
-#                 current_row += 1
-
-#             # gap of 5 rows between entries
-#             current_row += 5
-
-#         # final autosize
-#         _excel_autofit_ws(ws)
-
-#         out = io.BytesIO()
-#         wb.save(out)
-#         out.seek(0)
-#         return send_file(
-#             out,
-#             as_attachment=True,
-#             download_name='analysis_results.xlsx',
-#             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-#         )
-
-#     except Exception as ex:
-#         app.logger.exception("Export failed")
-#         return jsonify({"error": f"Export failed: {str(ex)}"}), 500
-
-
 
 
 
